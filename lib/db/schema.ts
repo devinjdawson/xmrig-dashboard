@@ -6,6 +6,7 @@ export const miners = sqliteTable("miners", {
   host: text("host").notNull(),
   port: integer("port").notNull(),
   accessToken: text("access_token"),
+  tags: text("tags"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 })

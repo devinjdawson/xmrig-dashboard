@@ -113,6 +113,7 @@ export interface Miner {
   host: string
   port: number
   accessToken: string | null
+  tags: string[]
   lastSummary: XmrigSummary | null
   lastThreads: XmrigThreadsResponse | null
   lastConfig: XmrigConfig | null

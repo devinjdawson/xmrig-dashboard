@@ -1,6 +1,5 @@
 import { db, initDb, miners as minersTable } from "@/lib/db"
-import { createMiner } from "@/lib/xmrig/api"
-import type { Miner } from "@/lib/xmrig/types"
+import { serializeMiner } from "@/lib/serialize-miner"
 import { eq } from "drizzle-orm"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -8,7 +7,7 @@ await initDb()
 
 export async function GET() {
   const rows = await db.select().from(minersTable).orderBy(minersTable.createdAt)
-  return NextResponse.json(rows)
+  return NextResponse.json(rows.map(serializeMiner))
 }
 
 export async function POST(req: NextRequest) {
@@ -18,48 +17,17 @@ export async function POST(req: NextRequest) {
   }
 
   const id = `miner-${Date.now()}`
-  const miner = createMiner(
-    id,
-    body.name || `Miner ${id.slice(-4)}`,
-    body.host,
-    body.port,
-    body.accessToken ?? null,
-  )
+  const tags = Array.isArray(body.tags) ? body.tags : []
 
   await db.insert(minersTable).values({
-    id: miner.id,
-    name: miner.name,
-    host: miner.host,
-    port: miner.port,
-    accessToken: miner.accessToken,
+    id,
+    name: body.name || `Miner ${id.slice(-4)}`,
+    host: body.host,
+    port: body.port,
+    accessToken: body.accessToken ?? null,
+    tags: JSON.stringify(tags),
   })
 
-  return NextResponse.json(miner, { status: 201 })
-}
-
-export async function PUT(req: NextRequest) {
-  const body = await req.json().catch(() => null)
-  if (!body || !body.id) {
-    return NextResponse.json({ error: "id required" }, { status: 400 })
-  }
-
-  const existing = await db.select().from(minersTable).where(eq(minersTable.id, body.id)).get()
-  if (!existing) {
-    return NextResponse.json({ error: "not found" }, { status: 404 })
-  }
-
-  const updated = await db
-    .update(minersTable)
-    .set({
-      name: body.name ?? existing.name,
-      host: body.host ?? existing.host,
-      port: body.port ?? existing.port,
-      accessToken: body.accessToken ?? existing.accessToken,
-      updatedAt: new Date(),
-    })
-    .where(eq(minersTable.id, body.id))
-    .returning()
-    .get()
-
-  return NextResponse.json(updated)
+  const row = await db.select().from(minersTable).where(eq(minersTable.id, id)).get()
+  return NextResponse.json(serializeMiner(row), { status: 201 })
 }

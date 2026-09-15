@@ -34,11 +34,16 @@ export async function initDb() {
     )
   `)
   
-  // Migration: add threads_error and config_error columns if they don't exist
-  const columns = sqlite.prepare("PRAGMA table_info(miner_snapshots)").all() as any[]
-  const hasThreadsError = columns.some((c: any) => c.name === 'threads_error')
-  const hasConfigError = columns.some((c: any) => c.name === 'config_error')
+  const minerCols = sqlite.prepare("PRAGMA table_info(miners)").all() as any[]
+  const snapshotCols = sqlite.prepare("PRAGMA table_info(miner_snapshots)").all() as any[]
   
+  const hasMinerTags = minerCols.some((c: any) => c.name === 'tags')
+  if (!hasMinerTags) {
+    sqlite.exec("ALTER TABLE miners ADD COLUMN tags TEXT")
+  }
+  
+  const hasThreadsError = snapshotCols.some((c: any) => c.name === 'threads_error')
+  const hasConfigError = snapshotCols.some((c: any) => c.name === 'config_error')
   if (!hasThreadsError) {
     sqlite.exec("ALTER TABLE miner_snapshots ADD COLUMN threads_error TEXT")
   }

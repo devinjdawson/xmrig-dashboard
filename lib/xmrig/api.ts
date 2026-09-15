@@ -1,4 +1,4 @@
-import type { Miner, XmrigConfig, XmrigSummary, XmrigThreadsResponse } from "./types"
+import type { Miner, XmrigConfig, XmrigSummary } from "./types"
 
 const BASE = "/api/xmrig"
 
@@ -22,10 +22,6 @@ async function fetchMiner<T>(
 
 export async function getSummary(miner: Miner): Promise<XmrigSummary> {
   return fetchMiner<XmrigSummary>(miner.host, miner.port, miner.accessToken, "/1/summary")
-}
-
-export async function getThreads(miner: Miner): Promise<XmrigThreadsResponse> {
-  return fetchMiner<XmrigThreadsResponse>(miner.host, miner.port, miner.accessToken, "/1/threads")
 }
 
 export async function getConfig(miner: Miner): Promise<XmrigConfig> {
@@ -55,10 +51,13 @@ export function createMiner(id: string, name: string, host: string, port: number
     host,
     port,
     accessToken: accessToken ?? null,
+    tags: [],
     lastSummary: null,
     lastThreads: null,
     lastConfig: null,
     error: null,
+    threadsError: null,
+    configError: null,
     lastUpdated: null,
   }
 }

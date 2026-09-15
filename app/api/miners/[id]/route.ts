@@ -1,6 +1,5 @@
 import { db, miners as minersTable } from "@/lib/db"
-import { createMiner } from "@/lib/xmrig/api"
-import type { Miner } from "@/lib/xmrig/types"
+import { serializeMiner } from "@/lib/serialize-miner"
 import { eq } from "drizzle-orm"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -13,7 +12,7 @@ export async function GET(
   if (!row) {
     return NextResponse.json({ error: "not found" }, { status: 404 })
   }
-  return NextResponse.json(row)
+  return NextResponse.json(serializeMiner(row))
 }
 
 export async function PUT(
@@ -31,20 +30,21 @@ export async function PUT(
     return NextResponse.json({ error: "not found" }, { status: 404 })
   }
 
+  const updates: Record<string, any> = { updatedAt: new Date() }
+  if (body.name !== undefined) updates.name = body.name
+  if (body.host !== undefined) updates.host = body.host
+  if (body.port !== undefined) updates.port = body.port
+  if (body.accessToken !== undefined) updates.accessToken = body.accessToken
+  if (body.tags !== undefined) updates.tags = JSON.stringify(Array.isArray(body.tags) ? body.tags : [])
+
   const updated = await db
     .update(minersTable)
-    .set({
-      name: body.name ?? existing.name,
-      host: body.host ?? existing.host,
-      port: body.port ?? existing.port,
-      accessToken: body.accessToken ?? existing.accessToken,
-      updatedAt: new Date(),
-    })
+    .set(updates)
     .where(eq(minersTable.id, id))
     .returning()
     .get()
 
-  return NextResponse.json(updated)
+  return NextResponse.json(serializeMiner(updated))
 }
 
 export async function DELETE(

@@ -12,6 +12,7 @@ import { MinerConfig } from "./miner-config"
 import { MinerSummary } from "./miner-summary"
 import { MinerThreads } from "./miner-threads"
 import { HashrateChart } from "./hashrate-chart"
+import { MiningStatsCard } from "./mining-stats-card"
 import type { Miner } from "@/lib/xmrig/types"
 
 interface MinerCardProps {
@@ -112,6 +113,7 @@ export function MinerCard({ miner, onRefresh, onDelete, onEdit }: MinerCardProps
             <TabsTrigger value="threads">Threads</TabsTrigger>
             <TabsTrigger value="config">Config</TabsTrigger>
             <TabsTrigger value="stream">Stream</TabsTrigger>
+            <TabsTrigger value="stats">Stats</TabsTrigger>
           </TabsList>
           <TabsContent value="summary">
             <MinerSummary summary={miner.lastSummary} loading={loading} />
@@ -124,6 +126,9 @@ export function MinerCard({ miner, onRefresh, onDelete, onEdit }: MinerCardProps
           </TabsContent>
           <TabsContent value="stream">
             <HashrateChart minerId={miner.id} />
+          </TabsContent>
+          <TabsContent value="stats">
+            <MiningStatsCard minerId={miner.id} />
           </TabsContent>
         </Tabs>
       </CardContent>
