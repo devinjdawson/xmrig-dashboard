@@ -3,6 +3,7 @@ import type { NextConfig } from "next"
 import path from "path"
 import fs from "fs"
 import dotenv from "dotenv"
+import { randomBytes } from "crypto"
 
 const DATA_DIR = process.env.XMRIG_DATA_DIR || path.join(require("os").homedir(), ".xmrig-dashboard")
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
@@ -12,10 +13,23 @@ if (fs.existsSync(envFile)) dotenv.config({ path: envFile })
 
 const P2POOL_API_DIR = process.env.P2POOL_API_DIR || path.resolve(DATA_DIR, "../p2pool/api")
 
+let authSecret = process.env.AUTH_SECRET
+if (!authSecret) {
+  const secretPath = path.join(DATA_DIR, "auth-secret")
+  try {
+    authSecret = fs.readFileSync(secretPath, "utf-8").trim()
+  } catch {}
+  if (!authSecret) {
+    authSecret = randomBytes(32).toString("base64")
+    fs.writeFileSync(secretPath, authSecret, { mode: 0o600 })
+  }
+}
+
 const nextConfig: NextConfig = {
   env: {
     P2POOL_API_DIR,
     XMRIG_DATA_DIR: DATA_DIR,
+    AUTH_SECRET: authSecret,
   },
 }
 

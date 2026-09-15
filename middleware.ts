@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { jwtVerify } from "jose"
-import { getOrCreateAuthSecret } from "@/lib/auth-secrets"
 
 const PUBLIC_PATHS = ["/login", "/api/auth"]
+
+function getAuthSecret(): string {
+  const secret = process.env.AUTH_SECRET
+  if (!secret) throw new Error("AUTH_SECRET must be set")
+  return secret
+}
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
@@ -25,7 +30,7 @@ export async function middleware(req: NextRequest) {
   }
 
   try {
-    const secret = new TextEncoder().encode(getOrCreateAuthSecret())
+    const secret = new TextEncoder().encode(getAuthSecret())
     await jwtVerify(token, secret)
     return NextResponse.next()
   } catch {
