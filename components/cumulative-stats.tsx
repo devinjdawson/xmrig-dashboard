@@ -70,7 +70,7 @@ export function CumulativeStats({ miners, selectedMiners, title = "Cumulative St
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Total Hashrate</p>
-            <p className="text-2xl font-bold">{formatHashrate(totalHashrate)}</p>
+            <p className="text-3xl font-extrabold tracking-tight">{formatHashrate(totalHashrate)}</p>
             <p className="text-xs text-muted-foreground">
               {activeMiners.length} of {selectedMiners?.size ?? miners.length} selected miners
             </p>
@@ -78,19 +78,19 @@ export function CumulativeStats({ miners, selectedMiners, title = "Cumulative St
 
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Total Shares</p>
-            <p className="text-2xl font-bold">{totalSharesGood}/{totalSharesTotal}</p>
+            <p className="text-3xl font-extrabold tracking-tight">{totalSharesGood}/{totalSharesTotal}</p>
             <p className="text-xs text-muted-foreground">{avgAcceptRate}% accept rate</p>
           </div>
 
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Uptime</p>
-            <p className="text-2xl font-bold">{formatUptime(totalUptime)}</p>
+            <p className="text-3xl font-extrabold tracking-tight">{formatUptime(totalUptime)}</p>
             <p className="text-xs text-muted-foreground">Combined</p>
           </div>
 
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Miners Online</p>
-            <p className="text-2xl font-bold">{onlineCount}/{miners.length}</p>
+            <p className="text-3xl font-extrabold tracking-tight">{onlineCount}/{miners.length}</p>
             <p className="text-xs text-muted-foreground">Active devices</p>
           </div>
         </div>

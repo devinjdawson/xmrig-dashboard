@@ -259,40 +259,40 @@ export function P2PoolCard({ url, enabled }: P2PoolCardProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div>
             <div className="text-xs text-muted-foreground">Pool Hashrate</div>
-            <div className="font-mono">{formatHashrate(s.hashRate ?? s.hash_rate_15m)}</div>
+            <div className="text-2xl font-extrabold tracking-tight tabular-nums">{formatHashrate(s.hashRate ?? s.hash_rate_15m)}</div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Miners</div>
-            <div className="font-mono">{s.miners ?? 0}</div>
+            <div className="text-2xl font-extrabold tracking-tight tabular-nums">{s.miners ?? 0}</div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Sidechain Diff</div>
-            <div className="font-mono">{s.sidechainDifficulty ? Number(s.sidechainDifficulty).toLocaleString() : "—"}</div>
+            <div className="text-lg font-bold tracking-tight tabular-nums">{s.sidechainDifficulty ? Number(s.sidechainDifficulty).toLocaleString() : "—"}</div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Network Height</div>
-            <div className="font-mono">{net.height?.toLocaleString() ?? "—"}</div>
+            <div className="text-lg font-bold tracking-tight tabular-nums">{net.height?.toLocaleString() ?? "—"}</div>
           </div>
         </div>
 
         {(s.hashrate_15m || s.average_effort || workers.length > 0) && (
           <div className="border-t pt-3">
             <div className="text-xs text-muted-foreground mb-2 font-medium">Stratum</div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
                 <div className="text-xs text-muted-foreground">15m Hashrate</div>
-                <div className="font-mono">{formatHashrate(s.hashrate_15m)}</div>
+                <div className="text-xl font-bold tracking-tight tabular-nums">{formatHashrate(s.hashrate_15m)}</div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Avg Effort</div>
-                <div className="font-mono">{s.average_effort?.toFixed(1) ?? "—"}%</div>
+                <div className="text-xl font-bold tracking-tight tabular-nums">{s.average_effort?.toFixed(1) ?? "—"}%</div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Workers</div>
-                <div className="font-mono">{workers.length}</div>
+                <div className="text-xl font-bold tracking-tight tabular-nums">{workers.length}</div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Shares</div>

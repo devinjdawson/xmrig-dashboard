@@ -85,9 +85,9 @@ export function MinerSummary({ summary, loading }: MinerSummaryProps) {
             </Badge>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold tabular-nums">
+            <div className="text-4xl font-extrabold tabular-nums tracking-tight text-foreground">
               <RollingNumber value={sharesGood} decimals={0} />
-              <span className="text-muted-foreground text-lg font-normal"> / </span>
+              <span className="text-muted-foreground text-2xl font-normal mx-1">/</span>
               <RollingNumber value={sharesTotal} decimals={0} />
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -107,7 +107,7 @@ export function MinerSummary({ summary, loading }: MinerSummaryProps) {
             </Badge>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-4xl font-extrabold tracking-tight text-foreground">
               <RollingNumber
                 value={formatUptimeSeconds(uptime)}
                 decimals={0}

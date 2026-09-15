@@ -92,7 +92,7 @@ export function HashrateGauge({ current, max }: HashrateGaugeProps) {
                         <tspan
                           x={cx}
                           y={cy}
-                          className="fill-foreground text-xl font-bold tabular-nums"
+                          className="fill-foreground text-3xl font-extrabold tabular-nums tracking-tight"
                         >
                           <RollingNumber value={cur} />
                         </tspan>

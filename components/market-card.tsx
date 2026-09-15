@@ -236,7 +236,7 @@ export function MarketCard({ moneroUrl, moneroUser, moneroPass, initialHashrate 
             <div className="text-xs text-muted-foreground flex items-center gap-1">
               <DollarSign className="h-3 w-3" /> USD Price
             </div>
-            <div className="text-lg font-bold tabular-nums">
+            <div className="text-2xl font-extrabold tabular-nums tracking-tight">
               {price ? formatPrice(price.usd) : "—"}
             </div>
             <div className={`text-xs font-medium ${price?.usd_24h_change && price.usd_24h_change >= 0 ? "text-green-500" : "text-red-500"}`}>
@@ -249,7 +249,7 @@ export function MarketCard({ moneroUrl, moneroUser, moneroPass, initialHashrate 
 
           <div>
             <div className="text-xs text-muted-foreground">BTC Price</div>
-            <div className="text-lg font-bold tabular-nums">
+            <div className="text-2xl font-extrabold tabular-nums tracking-tight">
               {price ? formatBtc(price.btc) : "—"}
             </div>
             <div className={`text-xs ${price?.btc_24h_change && price.btc_24h_change >= 0 ? "text-green-500" : "text-red-500"}`}>
@@ -259,7 +259,7 @@ export function MarketCard({ moneroUrl, moneroUser, moneroPass, initialHashrate 
 
           <div>
             <div className="text-xs text-muted-foreground">Block Height</div>
-            <div className="text-lg font-bold tabular-nums">{network?.height.toLocaleString() ?? "—"}</div>
+            <div className="text-2xl font-extrabold tabular-nums tracking-tight">{network?.height.toLocaleString() ?? "—"}</div>
             <div className="text-xs text-muted-foreground">
               {network ? `${network.outgoing_connections}↓ ${network.incoming_connections}↑` : "—"} peers
             </div>
@@ -267,7 +267,7 @@ export function MarketCard({ moneroUrl, moneroUser, moneroPass, initialHashrate 
 
           <div>
             <div className="text-xs text-muted-foreground">Difficulty</div>
-            <div className="text-lg font-bold tabular-nums">{network ? formatDifficulty(network.difficulty) : "—"}</div>
+            <div className="text-2xl font-extrabold tabular-nums tracking-tight">{network ? formatDifficulty(network.difficulty) : "—"}</div>
             <div className="text-xs text-muted-foreground">
               {network?.tx_pool_size ? `${network.tx_pool_size} in mempool` : "— mempool"}
             </div>
