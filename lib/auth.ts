@@ -4,19 +4,28 @@ import GitLab from "next-auth/providers/gitlab"
 import Google from "next-auth/providers/google"
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id"
 import Credentials from "next-auth/providers/credentials"
+import { getOrCreateAuthSecret } from "./auth-secrets"
 
 const ALLOWED_EMAILS = (process.env.AUTH_ALLOWED_EMAILS || "")
   .split(",")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean)
 
-function isAllowed(email: string | null | undefined): boolean {
+export function isAllowed(email: string | null | undefined): boolean {
   if (!email) return false
   if (ALLOWED_EMAILS.length === 0) return true
   return ALLOWED_EMAILS.includes(email.toLowerCase())
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  secret: getOrCreateAuthSecret(),
+  session: { strategy: "jwt", maxAge: 24 * 60 * 60 },
+  cookies: {
+    sessionToken: {
+      options: { httpOnly: true, sameSite: "lax", path: "/", secure: process.env.NODE_ENV === "production" },
+    },
+  },
+  trustHost: true,
   providers: [
     ...(process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET
       ? [GitHub({ clientId: process.env.AUTH_GITHUB_ID, clientSecret: process.env.AUTH_GITHUB_SECRET })]
@@ -35,12 +44,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         })]
       : []),
     Credentials({
+      id: "otp",
+      name: "OTP",
       credentials: {
         email: { label: "Email", type: "email" },
+        code: { label: "Code", type: "text" },
       },
       authorize: async (credentials) => {
         const email = credentials?.email as string | undefined
-        if (!email || !isAllowed(email)) return null
+        const code = credentials?.code as string | undefined
+        if (!email || !code || !isAllowed(email)) return null
+        const { verifyOtp } = await import("./otp-verify")
+        const valid = await verifyOtp(email, code)
+        if (!valid) return null
         return { id: email, email, name: email.split("@")[0] }
       },
     }),

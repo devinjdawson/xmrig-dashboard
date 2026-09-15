@@ -1,20 +1,37 @@
-import { auth } from "@/lib/auth"
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
+import { jwtVerify } from "jose"
+import { getOrCreateAuthSecret } from "@/lib/auth-secrets"
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth
-  const isOnLoginPage = req.nextUrl.pathname === "/login"
-  const isAuthRoute = req.nextUrl.pathname.startsWith("/api/auth")
+const PUBLIC_PATHS = ["/login", "/api/auth"]
 
-  if (isAuthRoute) return
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl
 
-  if (!isLoggedIn && !isOnLoginPage) {
-    return Response.redirect(new URL("/login", req.nextUrl))
+  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next()
   }
 
-  if (isLoggedIn && isOnLoginPage) {
-    return Response.redirect(new URL("/", req.nextUrl))
+  if (pathname.startsWith("/_next") || pathname === "/favicon.ico") {
+    return NextResponse.next()
   }
-})
+
+  const token =
+    req.cookies.get("__Secure-authjs.session-token")?.value ||
+    req.cookies.get("authjs.session-token")?.value
+
+  if (!token) {
+    return NextResponse.redirect(new URL("/login", req.url))
+  }
+
+  try {
+    const secret = new TextEncoder().encode(getOrCreateAuthSecret())
+    await jwtVerify(token, secret)
+    return NextResponse.next()
+  } catch {
+    return NextResponse.redirect(new URL("/login", req.url))
+  }
+}
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
