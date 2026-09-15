@@ -34,3 +34,5 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+xmrig-dashboard.db
+xmrig-dashboard.db-wal

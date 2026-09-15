@@ -11,6 +11,7 @@ import { DashboardToolbar } from "@/components/dashboard-toolbar"
 import { MinerTable } from "@/components/miner-table"
 import { GroupManager } from "@/components/group-manager"
 import { NetworkSettings } from "@/components/network-settings"
+import { EditMinerModal } from "@/components/edit-miner-modal"
 import { P2PoolCard } from "@/components/p2pool-card"
 import { MoneroCard } from "@/components/monero-card"
 import { loadEndpoints, type NetworkEndpoints } from "@/lib/network-endpoints"
@@ -58,7 +59,6 @@ export default function DashboardPage() {
   const [miners, setMiners] = useState<Miner[]>([])
   const [showAdd, setShowAdd] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editName, setEditName] = useState("")
   const [form, setForm] = useState({ name: "", host: "127.0.0.1", port: "44444", accessToken: "", tags: "" })
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -277,12 +277,10 @@ export default function DashboardPage() {
 
   function startEdit(miner: Miner) {
     setEditingId(miner.id)
-    setEditName(miner.name)
   }
 
-  async function saveEdit(id: string) {
-    if (!editName.trim()) return
-    const updated = await updateMiner(id, { name: editName.trim() })
+  async function saveEdit(id: string, updates: { name?: string; host?: string; port?: number; accessToken?: string; tags?: string[] }) {
+    const updated = await updateMiner(id, updates)
     setMiners((prev) => prev.map((m) => (m.id === id ? updated : m)))
     setEditingId(null)
   }
@@ -501,27 +499,11 @@ export default function DashboardPage() {
                   />
                 </div>
                 {editingId === miner.id ? (
-                  <Card className="p-4">
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && saveEdit(miner.id)}
-                        className="max-w-xs"
-                        autoFocus
-                      />
-                      <Button size="sm" onClick={() => saveEdit(miner.id)}>
-                        Save
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingId(null)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </Card>
+                  <EditMinerModal
+                    miner={miner}
+                    onSave={saveEdit}
+                    onClose={() => setEditingId(null)}
+                  />
                 ) : (
                   <MinerCard
                     miner={miner}
