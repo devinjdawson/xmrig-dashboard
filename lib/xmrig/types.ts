@@ -117,5 +117,7 @@ export interface Miner {
   lastThreads: XmrigThreadsResponse | null
   lastConfig: XmrigConfig | null
   error: string | null
+  threadsError: string | null
+  configError: string | null
   lastUpdated: number | null
 }

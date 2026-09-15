@@ -11,7 +11,7 @@ sqlite.pragma("foreign_keys = ON")
 export const db = drizzle(sqlite)
 
 export async function initDb() {
-  await db.run(`
+  sqlite.exec(`
     CREATE TABLE IF NOT EXISTS miners (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -22,7 +22,7 @@ export async function initDb() {
       updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
     )
   `)
-  await db.run(`
+  sqlite.exec(`
     CREATE TABLE IF NOT EXISTS miner_snapshots (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       miner_id TEXT NOT NULL REFERENCES miners(id),
@@ -30,14 +30,16 @@ export async function initDb() {
       threads TEXT,
       config TEXT,
       error TEXT,
+      threads_error TEXT,
+      config_error TEXT,
       timestamp INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
     )
   `)
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_miner_snapshots_miner_id ON miner_snapshots(miner_id)
+  sqlite.exec(`
+    CREATE INDEX IF NOT EXISTS idx_snapshot_miner ON miner_snapshots(miner_id)
   `)
-  await db.run(`
-    CREATE INDEX IF NOT EXISTS idx_miner_snapshots_timestamp ON miner_snapshots(timestamp)
+  sqlite.exec(`
+    CREATE INDEX IF NOT EXISTS idx_snapshot_ts ON miner_snapshots(timestamp)
   `)
 }
 

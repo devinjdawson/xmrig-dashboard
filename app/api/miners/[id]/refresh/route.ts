@@ -1,5 +1,5 @@
 import { db, miners as minersTable, minerSnapshots as snapshotsTable } from "@/lib/db"
-import { getSummary, getThreads, getConfig } from "@/lib/xmrig/api"
+import { getSummary, getConfig } from "@/lib/xmrig/api"
 import { eq } from "drizzle-orm"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -24,24 +24,32 @@ export async function POST(
   let summary = null
   let threads = null
   let config = null
-  let error = null
+  let summaryError: string | null = null
+  let threadsError: string | null = null
+  let configError: string | null = null
 
   try {
     summary = await getSummary(miner)
+    // Parse threads from summary (hashrate.threads array)
+    if (summary?.hashrate?.threads) {
+      threads = { threads: summary.hashrate.threads.map((h: any, i: number) => ({
+        cpu: i,
+        hashrate: h
+      }))}
+    }
   } catch (e: any) {
-    error = e.message
-  }
-
-  try {
-    threads = await getThreads(miner)
-  } catch {
-    // threads optional
+    summaryError = e.message || "Failed to fetch summary"
   }
 
   try {
     config = await getConfig(miner)
-  } catch {
-    // config optional
+  } catch (e: any) {
+    const msg = e.message || "Failed to fetch config"
+    if (msg.includes("403")) {
+      configError = "Config access restricted. Set \"restricted\": false in XMRig config to enable."
+    } else {
+      configError = msg
+    }
   }
 
   await db.insert(snapshotsTable).values({
@@ -49,14 +57,23 @@ export async function POST(
     summary: summary ? JSON.stringify(summary) : null,
     threads: threads ? JSON.stringify(threads) : null,
     config: config ? JSON.stringify(config) : null,
-    error,
+    error: summaryError,
+    threadsError,
+    configError,
   })
 
   await db.update(minersTable)
     .set({ updatedAt: new Date() })
     .where(eq(minersTable.id, id))
 
-  return NextResponse.json({ summary, threads, config, error })
+  return NextResponse.json({
+    summary,
+    threads,
+    config,
+    error: summaryError,
+    threadsError,
+    configError,
+  })
 }
 
 export async function GET(

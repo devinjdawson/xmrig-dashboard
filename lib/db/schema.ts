@@ -17,5 +17,7 @@ export const minerSnapshots = sqliteTable("miner_snapshots", {
   threads: text("threads", { mode: "json" }),
   config: text("config", { mode: "json" }),
   error: text("error"),
+  threadsError: text("threads_error"),
+  configError: text("config_error"),
   timestamp: integer("timestamp", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 })
