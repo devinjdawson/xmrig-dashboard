@@ -139,23 +139,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "empty url after cleaning" }, { status: 400 })
   }
   
-  // Common P2Pool API endpoint patterns
+  // P2Pool API endpoint patterns (with --local-api flag)
   const statsEndpoints = [
+    `${baseUrl}/local/stratum`,      // Primary: stratum stats with hashrate, shares, workers
+    `${baseUrl}/pool/stats`,          // Pool-level aggregated stats
+    `${baseUrl}/stats_mod`,           // Modified stats with config
     `${baseUrl}/api/pool/stats`,
-    `${baseUrl}/pool/stats`,
-    `${baseUrl}/stats`,
-    `${baseUrl}/pool/statistics`,
-    // SChernykh canonical: --local-api / --stratum-api exposes JSON
-    // under /local/* on the Stratum port (default 3333)
     `${baseUrl}/local/stats`,
-    `${baseUrl}/local/pool/stats`,
   ]
   
   const blocksEndpoints = [
+    `${baseUrl}/local/blocks`,
     `${baseUrl}/api/pool/blocks`,
     `${baseUrl}/pool/blocks`,
     `${baseUrl}/blocks`,
-    `${baseUrl}/local/blocks`,
+  ]
+  
+  const networkEndpoints = [
+    `${baseUrl}/network/stats`,       // Network difficulty, height, reward
+  ]
+  
+  const p2pEndpoints = [
+    `${baseUrl}/local/p2p`,           // P2P connections, peers, uptime
   ]
   
   const diagnostics: DiagnosticResult[] = []
@@ -164,14 +169,28 @@ export async function GET(req: NextRequest) {
   for (const endpoint of statsEndpoints) {
     const result = await tryEndpoint(endpoint)
     diagnostics.push(result)
-    if (result.ok) break // Stop on first success
+    if (result.ok) break
   }
   
   // Test blocks endpoints
   for (const endpoint of blocksEndpoints) {
     const result = await tryEndpoint(endpoint)
     diagnostics.push(result)
-    if (result.ok) break // Stop on first success
+    if (result.ok) break
+  }
+  
+  // Test network endpoints
+  for (const endpoint of networkEndpoints) {
+    const result = await tryEndpoint(endpoint)
+    diagnostics.push(result)
+    if (result.ok) break
+  }
+  
+  // Test p2p endpoints
+  for (const endpoint of p2pEndpoints) {
+    const result = await tryEndpoint(endpoint)
+    diagnostics.push(result)
+    if (result.ok) break
   }
   
   if (testOnly) {
@@ -182,21 +201,58 @@ export async function GET(req: NextRequest) {
     })
   }
   
-  // Extract stats
-  const statsResult = diagnostics.find(d => statsEndpoints.includes(d.url))
+  // Extract stats from working endpoint
+  const statsResult = diagnostics.find(d => statsEndpoints.includes(d.url) && d.ok)
   let stats = null
-  if (statsResult?.ok && statsResult.responseSnippet) {
+  if (statsResult?.responseSnippet) {
     try {
       const parsed = JSON.parse(statsResult.responseSnippet)
-      // Handle both wrapped and unwrapped formats
-      stats = parsed.pool_statistics ? parsed : { pool_statistics: parsed }
+      // Handle different response formats:
+      // - /local/stratum returns flat object with hashrate_15m, workers, etc.
+      // - /pool/stats returns { pool_statistics: {...} }
+      // - /stats_mod returns { config, network, pool }
+      if (parsed.pool_statistics) {
+        stats = parsed
+      } else if (parsed.hashrate_15m !== undefined || parsed.workers) {
+        // Stratum format - wrap for consistency
+        stats = { pool_statistics: parsed }
+      } else if (parsed.pool?.stats) {
+        // stats_mod format
+        stats = { pool_statistics: parsed.pool.stats, config: parsed.config, network: parsed.network }
+      } else {
+        stats = { pool_statistics: parsed }
+      }
     } catch (e: any) {
       return NextResponse.json({
         stats: null,
         blocks: [],
+        network: null,
+        p2p: null,
         error: `Failed to parse stats: ${e.message}`,
         diagnostics
       }, { status: 500 })
+    }
+  }
+  
+  // Extract network stats
+  const networkResult = diagnostics.find(d => networkEndpoints.includes(d.url) && d.ok)
+  let network = null
+  if (networkResult?.responseSnippet) {
+    try {
+      network = JSON.parse(networkResult.responseSnippet)
+    } catch (e: any) {
+      console.warn("Failed to parse network stats:", e.message)
+    }
+  }
+  
+  // Extract P2P stats
+  const p2pResult = diagnostics.find(d => p2pEndpoints.includes(d.url) && d.ok)
+  let p2p = null
+  if (p2pResult?.responseSnippet) {
+    try {
+      p2p = JSON.parse(p2pResult.responseSnippet)
+    } catch (e: any) {
+      console.warn("Failed to parse p2p stats:", e.message)
     }
   }
   
@@ -217,10 +273,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       stats: null,
       blocks: [],
+      network: null,
+      p2p: null,
       error: `No working P2Pool endpoint found.\n\nTried:\n${allErrors}`,
       diagnostics
     }, { status: 503 })
   }
   
-  return NextResponse.json({ stats, blocks, error: null, diagnostics })
+  return NextResponse.json({ stats, blocks, network, p2p, error: null, diagnostics })
 }

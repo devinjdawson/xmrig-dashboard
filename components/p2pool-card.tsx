@@ -23,6 +23,8 @@ interface DiagnosticResult {
 interface P2PoolData {
   stats: any
   blocks: any[]
+  network: any
+  p2p: any
   error: string | null
   diagnostics?: DiagnosticResult[]
 }
@@ -66,6 +68,8 @@ export function P2PoolCard({ url, enabled }: P2PoolCardProps) {
         if (active) setData({
           stats: null,
           blocks: [],
+          network: null,
+          p2p: null,
           error: e.message || "Failed to fetch statistics",
           diagnostics: []
         })
@@ -91,6 +95,8 @@ export function P2PoolCard({ url, enabled }: P2PoolCardProps) {
       setData({
         stats: null,
         blocks: [],
+        network: null,
+        p2p: null,
         error: json.error || null,
         diagnostics: json.diagnostics || []
       })
@@ -99,6 +105,8 @@ export function P2PoolCard({ url, enabled }: P2PoolCardProps) {
       setData({
         stats: null,
         blocks: [],
+        network: null,
+        p2p: null,
         error: e.message || "Test failed",
         diagnostics: []
       })
@@ -219,6 +227,9 @@ export function P2PoolCard({ url, enabled }: P2PoolCardProps) {
   }
 
   const s = data.stats.pool_statistics || {}
+  const net = data.network || {}
+  const p2p = data.p2p || {}
+  const workers = Array.isArray(s.workers) ? s.workers : []
 
   return (
     <Card>
@@ -247,30 +258,76 @@ export function P2PoolCard({ url, enabled }: P2PoolCardProps) {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="grid grid-cols-2 gap-3 text-sm">
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
           <div>
             <div className="text-xs text-muted-foreground">Pool Hashrate</div>
-            <div className="font-mono">{formatHashrate(s.hash_rate_15m)}</div>
+            <div className="font-mono">{formatHashrate(s.hashRate ?? s.hash_rate_15m)}</div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Miners</div>
             <div className="font-mono">{s.miners ?? 0}</div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground">Difficulty</div>
-            <div className="font-mono">{s.sidechain_difficulty ? Number(s.sidechain_difficulty).toLocaleString() : "—"}</div>
+            <div className="text-xs text-muted-foreground">Sidechain Diff</div>
+            <div className="font-mono">{s.sidechainDifficulty ? Number(s.sidechainDifficulty).toLocaleString() : "—"}</div>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground">Last Block</div>
-            <div className="font-mono">
-              {s.last_block_found_time ? timeAgo(s.last_block_found_time) : "—"}
-            </div>
+            <div className="text-xs text-muted-foreground">Network Height</div>
+            <div className="font-mono">{net.height?.toLocaleString() ?? "—"}</div>
           </div>
         </div>
 
+        {(s.hashrate_15m || s.average_effort || workers.length > 0) && (
+          <div className="border-t pt-3">
+            <div className="text-xs text-muted-foreground mb-2 font-medium">Stratum</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+              <div>
+                <div className="text-xs text-muted-foreground">15m Hashrate</div>
+                <div className="font-mono">{formatHashrate(s.hashrate_15m)}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Avg Effort</div>
+                <div className="font-mono">{s.average_effort?.toFixed(1) ?? "—"}%</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Workers</div>
+                <div className="font-mono">{workers.length}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Shares</div>
+                <div className="font-mono">
+                  {s.shares_found ?? 0} / {s.total_stratum_shares ?? 0}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {p2p.connections != null && (
+          <div className="border-t pt-3">
+            <div className="text-xs text-muted-foreground mb-2 font-medium">P2P Network</div>
+            <div className="grid grid-cols-3 gap-3 text-sm">
+              <div>
+                <div className="text-xs text-muted-foreground">Connections</div>
+                <div className="font-mono">{p2p.connections}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Peer List</div>
+                <div className="font-mono">{p2p.peer_list_size ?? 0}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Uptime</div>
+                <div className="font-mono">
+                  {p2p.uptime ? `${Math.floor(p2p.uptime / 60)}m` : "—"}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {data.blocks?.length > 0 && (
-          <div>
+          <div className="border-t pt-3">
             <div className="text-xs text-muted-foreground mb-2">Recent Blocks ({data.blocks.length})</div>
             <div className="text-xs space-y-1 max-h-24 overflow-y-auto">
               {data.blocks.slice(0, 5).map((b: any, i: number) => (
