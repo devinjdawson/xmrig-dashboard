@@ -1,0 +1,44 @@
+import Database from "better-sqlite3"
+import { drizzle } from "drizzle-orm/better-sqlite3"
+import { miners, minerSnapshots } from "./schema"
+
+const DB_PATH = process.env.XMIG_DASHBOARD_DB ?? "./xmrig-dashboard.db"
+
+const sqlite = new Database(DB_PATH)
+sqlite.pragma("journal_mode = WAL")
+sqlite.pragma("foreign_keys = ON")
+
+export const db = drizzle(sqlite)
+
+export async function initDb() {
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS miners (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      host TEXT NOT NULL,
+      port INTEGER NOT NULL,
+      access_token TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+    )
+  `)
+  await db.run(`
+    CREATE TABLE IF NOT EXISTS miner_snapshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      miner_id TEXT NOT NULL REFERENCES miners(id),
+      summary TEXT,
+      threads TEXT,
+      config TEXT,
+      error TEXT,
+      timestamp INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+    )
+  `)
+  await db.run(`
+    CREATE INDEX IF NOT EXISTS idx_miner_snapshots_miner_id ON miner_snapshots(miner_id)
+  `)
+  await db.run(`
+    CREATE INDEX IF NOT EXISTS idx_miner_snapshots_timestamp ON miner_snapshots(timestamp)
+  `)
+}
+
+export { miners, minerSnapshots }
