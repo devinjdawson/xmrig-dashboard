@@ -30,11 +30,22 @@ export async function initDb() {
       threads TEXT,
       config TEXT,
       error TEXT,
-      threads_error TEXT,
-      config_error TEXT,
       timestamp INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
     )
   `)
+  
+  // Migration: add threads_error and config_error columns if they don't exist
+  const columns = sqlite.prepare("PRAGMA table_info(miner_snapshots)").all() as any[]
+  const hasThreadsError = columns.some((c: any) => c.name === 'threads_error')
+  const hasConfigError = columns.some((c: any) => c.name === 'config_error')
+  
+  if (!hasThreadsError) {
+    sqlite.exec("ALTER TABLE miner_snapshots ADD COLUMN threads_error TEXT")
+  }
+  if (!hasConfigError) {
+    sqlite.exec("ALTER TABLE miner_snapshots ADD COLUMN config_error TEXT")
+  }
+  
   sqlite.exec(`
     CREATE INDEX IF NOT EXISTS idx_snapshot_miner ON miner_snapshots(miner_id)
   `)
