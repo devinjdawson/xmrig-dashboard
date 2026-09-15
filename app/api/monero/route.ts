@@ -84,13 +84,14 @@ export async function GET(req: NextRequest) {
   const pass = req.nextUrl.searchParams.get("pass") || undefined
   if (!url) return NextResponse.json({ error: "url required" }, { status: 400 })
 
+  const cleanedUrl = url.replace(/\s+/g, "").replace(/\/$/, "")
   const auth = user ? { user, pass: pass || "" } : undefined
 
   try {
     const [info, feeEstimate, altBlocks] = await Promise.allSettled([
-      rpc(url, "get_info", {}, auth),
-      rpcRaw(url, "get_fee_estimate", {}, auth),
-      rpcRaw(url, "get_alt_blocks_hashes", {}, auth).then((r) => r.blks_hashes || []),
+      rpc(cleanedUrl, "get_info", {}, auth),
+      rpcRaw(cleanedUrl, "get_fee_estimate", {}, auth),
+      rpcRaw(cleanedUrl, "get_alt_blocks_hashes", {}, auth).then((r) => r.blks_hashes || []),
     ])
 
     const result: any = {

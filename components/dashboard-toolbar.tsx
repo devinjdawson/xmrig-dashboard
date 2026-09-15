@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 interface DashboardToolbarProps {
-  viewMode: "grid" | "list"
-  onViewModeChange: (mode: "grid" | "list") => void
+  viewMode: "grid" | "list" | "table"
+  onViewModeChange: (mode: "grid" | "list" | "table") => void
   sortBy: string
   onSortChange: (sort: string) => void
   sortDirection: "asc" | "desc"
@@ -78,6 +78,13 @@ export function DashboardToolbar({
             onClick={() => onViewModeChange("list")}
           >
             List
+          </Button>
+          <Button
+            size="sm"
+            variant={viewMode === "table" ? "default" : "outline"}
+            onClick={() => onViewModeChange("table")}
+          >
+            Table
           </Button>
         </div>
 

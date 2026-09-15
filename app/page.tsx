@@ -12,9 +12,12 @@ import { MinerTable } from "@/components/miner-table"
 import { GroupManager } from "@/components/group-manager"
 import { NetworkSettings } from "@/components/network-settings"
 import { EditMinerModal } from "@/components/edit-miner-modal"
+import { DuplicateMinerModal } from "@/components/duplicate-miner-modal"
+import { MinerGroup } from "@/components/miner-group"
+import { MinerGrid } from "@/components/miner-grid"
 import { P2PoolCard } from "@/components/p2pool-card"
 import { MoneroCard } from "@/components/monero-card"
-import { loadEndpoints, type NetworkEndpoints } from "@/lib/network-endpoints"
+import { loadEndpoints, saveEndpoints, type NetworkEndpoints } from "@/lib/network-endpoints"
 import type { Miner } from "@/lib/xmrig/types"
 
 const API = "/api/miners"
@@ -22,6 +25,7 @@ const AUTO_REFRESH_MS = 30_000
 const CRON_INTERVAL_MS = 60_000
 const SELECTION_KEY = "xmrig-selection"
 const RETENTION_KEY = "xmrig-retention-days"
+const COLLAPSED_KEY = "xmrig-collapsed-groups"
 
 async function fetchMiners(): Promise<Miner[]> {
   const res = await fetch(API)
@@ -59,18 +63,26 @@ export default function DashboardPage() {
   const [miners, setMiners] = useState<Miner[]>([])
   const [showAdd, setShowAdd] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [duplicatingMiner, setDuplicatingMiner] = useState<Miner | null>(null)
   const [form, setForm] = useState({ name: "", host: "127.0.0.1", port: "44444", accessToken: "", tags: "" })
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "table">("list")
   const [sortBy, setSortBy] = useState<string>("name")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
   const [showGroupManager, setShowGroupManager] = useState(false)
   const [showNetworkSettings, setShowNetworkSettings] = useState(false)
   const [endpoints, setEndpoints] = useState<NetworkEndpoints>(() => loadEndpoints())
+
+  // One-time migration: if stored endpoints have stray whitespace, persist the cleaned versions
+  useEffect(() => {
+    saveEndpoints(endpoints)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const [retentionDays, setRetentionDays] = useState<number>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem(RETENTION_KEY)
@@ -97,6 +109,27 @@ export default function DashboardPage() {
   useEffect(() => {
     localStorage.setItem(SELECTION_KEY, JSON.stringify([...selectedMiners]))
   }, [selectedMiners])
+
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(COLLAPSED_KEY)
+      if (saved) return new Set(JSON.parse(saved))
+    }
+    return new Set()
+  })
+
+  useEffect(() => {
+    localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsedGroups]))
+  }, [collapsedGroups])
+
+  function setGroupCollapsed(label: string, collapsed: boolean) {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev)
+      if (collapsed) next.add(label)
+      else next.delete(label)
+      return next
+    })
+  }
 
   const groups = useMemo(() => {
     const allTags = miners.flatMap((m) => m.tags || [])
@@ -328,14 +361,36 @@ export default function DashboardPage() {
   }
 
   async function handleGroupRemove(name: string) {
+    const minersWithTag = miners.filter((m) => (m.tags || []).includes(name))
+    const confirmed = window.confirm(
+      `Remove group "${name}"?\n\nThis will remove the "${name}" tag from ${minersWithTag.length} miner(s).`
+    )
+    if (!confirmed) return
+
+    // Optimistic update
     setMiners((prev) => prev.map((m) => {
       if ((m.tags || []).includes(name)) {
         const updated = { ...m, tags: (m.tags || []).filter((t) => t !== name) }
-        updateMiner(m.id, { tags: updated.tags }).catch(() => {})
         return updated
       }
       return m
     }))
+
+    // Persist to database
+    const results = await Promise.allSettled(
+      minersWithTag.map((m) => 
+        updateMiner(m.id, { tags: m.tags.filter((t) => t !== name) })
+      )
+    )
+
+    const failed = results.filter((r) => r.status === "rejected")
+    if (failed.length > 0) {
+      console.error(`Failed to update ${failed.length} miner(s):`, failed)
+      alert(`Warning: Failed to remove "${name}" from ${failed.length} miner(s). Check console for details.`)
+      // Refresh to get accurate state
+      await load()
+    }
+
     if (activeGroup === name) setActiveGroup(null)
   }
 
@@ -350,6 +405,51 @@ export default function DashboardPage() {
     }))
     if (activeGroup === oldName) setActiveGroup(newName)
   }
+
+  function startDuplicate(miner: Miner) {
+    setDuplicatingMiner(miner)
+  }
+
+  async function handleDuplicateSave(draft: {
+    name: string
+    host: string
+    port: number
+    accessToken?: string
+    tags: string[]
+    duplicateToken: boolean
+  }) {
+    const payload = {
+      name: draft.name,
+      host: draft.host,
+      port: draft.port,
+      tags: draft.tags,
+      accessToken:
+        draft.duplicateToken && duplicatingMiner?.accessToken
+          ? duplicatingMiner.accessToken
+          : draft.accessToken || undefined,
+    }
+    const miner = await addMiner(payload)
+    setMiners((prev) => [...prev, { ...miner, tags: draft.tags }])
+    setSelectedMiners((prev) => new Set([...prev, miner.id]))
+  }
+
+  const groupedMiners = useMemo(() => {
+    const buckets = new Map<string, Miner[]>()
+    for (const m of filteredAndSortedMiners) {
+      const tags = m.tags && m.tags.length > 0 ? m.tags : [""]
+      for (const t of tags) {
+        const key = t || "Ungrouped"
+        if (!buckets.has(key)) buckets.set(key, [])
+        buckets.get(key)!.push(m)
+      }
+    }
+    const sortedKeys = [...buckets.keys()].sort((a, b) => {
+      if (a === "Ungrouped") return 1
+      if (b === "Ungrouped") return -1
+      return a.localeCompare(b)
+    })
+    return sortedKeys.map((k) => ({ label: k, miners: buckets.get(k)! }))
+  }, [filteredAndSortedMiners])
 
   if (loading) {
     return (
@@ -486,36 +586,7 @@ export default function DashboardPage() {
               No miners configured. Click &quot;Add Miner&quot; to get started.
             </p>
           </Card>
-        ) : viewMode === "grid" ? (
-          <div className="grid gap-4">
-            {filteredAndSortedMiners.map((miner) => (
-              <div key={miner.id} className="relative">
-                <div className="absolute top-4 left-4 z-10">
-                  <input
-                    type="checkbox"
-                    checked={selectedMiners.has(miner.id)}
-                    onChange={() => toggleSelection(miner.id)}
-                    className="rounded w-5 h-5"
-                  />
-                </div>
-                {editingId === miner.id ? (
-                  <EditMinerModal
-                    miner={miner}
-                    onSave={saveEdit}
-                    onClose={() => setEditingId(null)}
-                  />
-                ) : (
-                  <MinerCard
-                    miner={miner}
-                    onRefresh={refreshMiner}
-                    onDelete={handleDelete}
-                    onEdit={startEdit}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
+        ) : viewMode === "table" ? (
           <MinerTable
             miners={filteredAndSortedMiners}
             selectedMiners={selectedMiners}
@@ -523,7 +594,66 @@ export default function DashboardPage() {
             onEdit={startEdit}
             onDelete={handleDelete}
             onRefresh={refreshMiner}
+            onDuplicate={startDuplicate}
           />
+        ) : viewMode === "grid" ? (
+          <div className="space-y-4">
+            {groupedMiners.map(({ label, miners: bucket }) => (
+              <MinerGroup
+                key={label}
+                label={label}
+                miners={bucket}
+                selectedMiners={selectedMiners}
+                initialCollapsed={collapsedGroups.has(label)}
+                onCollapseChange={(c) => setGroupCollapsed(label, c)}
+              >
+                <MinerGrid
+                  miners={bucket}
+                  selectedMiners={selectedMiners}
+                  onToggleSelection={toggleSelection}
+                  onEdit={startEdit}
+                  onDelete={handleDelete}
+                  onRefresh={refreshMiner}
+                  onDuplicate={startDuplicate}
+                />
+              </MinerGroup>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {groupedMiners.map(({ label, miners: bucket }) => (
+              <MinerGroup
+                key={label}
+                label={label}
+                miners={bucket}
+                selectedMiners={selectedMiners}
+                initialCollapsed={collapsedGroups.has(label)}
+                onCollapseChange={(c) => setGroupCollapsed(label, c)}
+              >
+                <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3">
+                  {bucket.map((miner) =>
+                    editingId === miner.id ? (
+                      <EditMinerModal
+                        key={miner.id}
+                        miner={miner}
+                        onSave={saveEdit}
+                        onClose={() => setEditingId(null)}
+                      />
+                    ) : (
+                      <MinerCard
+                        key={miner.id}
+                        miner={miner}
+                        onRefresh={refreshMiner}
+                        onDelete={handleDelete}
+                        onEdit={startEdit}
+                        onDuplicate={startDuplicate}
+                      />
+                    ),
+                  )}
+                </div>
+              </MinerGroup>
+            ))}
+          </div>
         )}
       </div>
 
@@ -541,6 +671,14 @@ export default function DashboardPage() {
         <NetworkSettings
           onSave={(ep) => setEndpoints(ep)}
           onClose={() => setShowNetworkSettings(false)}
+        />
+      )}
+
+      {duplicatingMiner && (
+        <DuplicateMinerModal
+          source={duplicatingMiner}
+          onSave={handleDuplicateSave}
+          onClose={() => setDuplicatingMiner(null)}
         />
       )}
     </div>

@@ -3,10 +3,28 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { AlertCircle, RefreshCw } from "lucide-react"
 
 interface P2PoolCardProps {
   url: string
   enabled: boolean
+}
+
+interface DiagnosticResult {
+  url: string
+  status: number | null
+  ok: boolean
+  error: string | null
+  responseSnippet: string | null
+  timing: number
+}
+
+interface P2PoolData {
+  stats: any
+  blocks: any[]
+  error: string | null
+  diagnostics?: DiagnosticResult[]
 }
 
 function formatHashrate(h: number): string {
@@ -27,8 +45,9 @@ function timeAgo(ts: number): string {
 }
 
 export function P2PoolCard({ url, enabled }: P2PoolCardProps) {
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<P2PoolData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showDiagnostics, setShowDiagnostics] = useState(false)
 
   useEffect(() => {
     if (!enabled || !url) {
@@ -36,14 +55,57 @@ export function P2PoolCard({ url, enabled }: P2PoolCardProps) {
       return
     }
     let active = true
-    setLoading(true)
-    fetch(`/api/p2pool?url=${encodeURIComponent(url)}`)
-      .then((r) => r.json())
-      .then((d) => { if (active) setData(d) })
-      .catch(() => {})
-      .finally(() => { if (active) setLoading(false) })
-    return () => { active = false }
+
+    async function load() {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/p2pool?url=${encodeURIComponent(url)}`)
+        const json = await res.json()
+        if (active) setData(json)
+      } catch (e: any) {
+        if (active) setData({
+          stats: null,
+          blocks: [],
+          error: e.message || "Failed to fetch statistics",
+          diagnostics: []
+        })
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    load()
+    const interval = setInterval(load, 60000)
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
   }, [url, enabled])
+
+  const handleTest = async () => {
+    if (!url) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/p2pool?url=${encodeURIComponent(url)}&test=true`)
+      const json = await res.json()
+      setData({
+        stats: null,
+        blocks: [],
+        error: json.error || null,
+        diagnostics: json.diagnostics || []
+      })
+      setShowDiagnostics(true)
+    } catch (e: any) {
+      setData({
+        stats: null,
+        blocks: [],
+        error: e.message || "Test failed",
+        diagnostics: []
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (!enabled) {
     return (
@@ -63,8 +125,18 @@ export function P2PoolCard({ url, enabled }: P2PoolCardProps) {
   if (loading) {
     return (
       <Card>
-        <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Badge variant="secondary">P2Pool</Badge></CardTitle></CardHeader>
-        <CardContent className="text-sm text-muted-foreground">Loading...</CardContent>
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Badge variant="secondary">P2Pool</Badge>
+            <Badge variant="outline">Loading...</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="h-4 bg-muted animate-pulse rounded" />
+            <div className="h-4 bg-muted animate-pulse rounded" />
+          </div>
+        </CardContent>
       </Card>
     )
   }
@@ -72,14 +144,81 @@ export function P2PoolCard({ url, enabled }: P2PoolCardProps) {
   if (data?.error || !data?.stats) {
     return (
       <Card>
-        <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Badge variant="secondary">P2Pool</Badge></CardTitle></CardHeader>
-        <CardContent className="text-sm text-destructive">{data?.error || "Failed to fetch stats"}</CardContent>
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Badge variant="secondary">P2Pool</Badge>
+            <Badge variant="destructive">Error</Badge>
+            <div className="ml-auto flex gap-1">
+              <Button size="sm" variant="outline" onClick={handleTest} disabled={loading}>
+                Test
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                onClick={() => {
+                  setLoading(true)
+                  fetch(`/api/p2pool?url=${encodeURIComponent(url)}`)
+                    .then(r => r.json())
+                    .then(d => setData(d))
+                    .finally(() => setLoading(false))
+                }}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-start gap-2 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            <div className="font-mono text-xs whitespace-pre-wrap">{data?.error || "Failed to fetch stats"}</div>
+          </div>
+
+          {data?.diagnostics && data.diagnostics.length > 0 && (
+            <div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowDiagnostics(!showDiagnostics)}
+              >
+                {showDiagnostics ? "Hide" : "Show"} connection diagnostics
+              </Button>
+              {showDiagnostics && (
+                <div className="mt-2 space-y-2 border rounded p-3 bg-muted/30">
+                  {data.diagnostics.map((diag, i) => (
+                    <div key={i} className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs">
+                        <Badge variant={diag.ok ? "success" : "destructive"}>
+                          {diag.status ? `${diag.status}` : "FAIL"}
+                        </Badge>
+                        <span className="font-mono truncate">{diag.url}</span>
+                        <span className="text-muted-foreground ml-auto">{diag.timing}ms</span>
+                      </div>
+                      {diag.error && (
+                        <div className="text-xs text-destructive ml-8">{diag.error}</div>
+                      )}
+                      {diag.responseSnippet && (
+                        <pre className="text-[10px] bg-background p-2 rounded overflow-x-auto max-h-24 ml-8">{diag.responseSnippet}</pre>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {!data?.diagnostics?.length && (
+            <Button size="sm" variant="outline" onClick={handleTest} className="w-full">
+              Run connection test
+            </Button>
+          )}
+        </CardContent>
       </Card>
     )
   }
 
-  const s = data.stats
-  const ps = s.pool_statistics || {}
+  const s = data.stats.pool_statistics || {}
 
   return (
     <Card>
@@ -89,34 +228,50 @@ export function P2PoolCard({ url, enabled }: P2PoolCardProps) {
             <Badge variant="secondary">P2Pool</Badge>
             <Badge variant="success">Connected</Badge>
           </div>
-          <span className="text-xs text-muted-foreground font-mono">{url}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground font-mono">{url}</span>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={() => {
+                setLoading(true)
+                fetch(`/api/p2pool?url=${encodeURIComponent(url)}`)
+                  .then(r => r.json())
+                  .then(d => setData(d))
+                  .finally(() => setLoading(false))
+              }}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <div className="text-xs text-muted-foreground">Pool Hashrate</div>
-            <div className="font-mono">{formatHashrate(ps.hash_rate_15m)}</div>
+            <div className="font-mono">{formatHashrate(s.hash_rate_15m)}</div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Miners</div>
-            <div className="font-mono">{ps.miners ?? 0}</div>
+            <div className="font-mono">{s.miners ?? 0}</div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Difficulty</div>
-            <div className="font-mono">{ps.sidechain_difficulty ? Number(ps.sidechain_difficulty).toLocaleString() : "—"}</div>
+            <div className="font-mono">{s.sidechain_difficulty ? Number(s.sidechain_difficulty).toLocaleString() : "—"}</div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Last Block</div>
             <div className="font-mono">
-              {ps.last_block_found_time ? timeAgo(ps.last_block_found_time) : "—"}
+              {s.last_block_found_time ? timeAgo(s.last_block_found_time) : "—"}
             </div>
           </div>
         </div>
 
         {data.blocks?.length > 0 && (
           <div>
-            <div className="text-xs text-muted-foreground mb-2">Recent Blocks</div>
+            <div className="text-xs text-muted-foreground mb-2">Recent Blocks ({data.blocks.length})</div>
             <div className="text-xs space-y-1 max-h-24 overflow-y-auto">
               {data.blocks.slice(0, 5).map((b: any, i: number) => (
                 <div key={i} className="flex justify-between font-mono">

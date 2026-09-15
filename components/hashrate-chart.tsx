@@ -59,8 +59,18 @@ export function HashrateChart({ minerId }: HashrateChartProps) {
     .reverse()
 
   const hashrates = data.map((d) => d.hashrate)
+  
+  if (hashrates.length === 0) {
+    return <div className="text-muted-foreground text-sm p-4">No valid hashrate data.</div>
+  }
+  
   const max = Math.max(...hashrates)
-  const min = Math.min(...hashrates.filter((h) => h > 0))
+  const positiveHashrates = hashrates.filter((h) => h > 0)
+  const min = positiveHashrates.length > 0 ? Math.min(...positiveHashrates) : 0
+  
+  if (max === 0) {
+    return <div className="text-muted-foreground text-sm p-4">All hashrates are zero. Waiting for mining activity...</div>
+  }
 
   const first = data[0]?.timestamp
   const last = data[data.length - 1]?.timestamp
@@ -81,7 +91,7 @@ export function HashrateChart({ minerId }: HashrateChartProps) {
     return `${h.toFixed(2)} H/s`
   }
 
-  const yLabels = [min, (min + max) / 2, max].filter((v) => v > 0)
+  const yLabels = [min, (min + max) / 2, max].filter((v) => isFinite(v) && v > 0)
 
   return (
     <Card>
@@ -102,8 +112,8 @@ export function HashrateChart({ minerId }: HashrateChartProps) {
         </div>
         <div className="relative h-48 flex">
           <div className="flex flex-col justify-between text-xs text-muted-foreground pr-2 w-16 text-right">
-            {yLabels.slice().reverse().map((v) => (
-              <span key={v}>{formatHashrate(v)}</span>
+            {yLabels.slice().reverse().map((v, i) => (
+              <span key={i}>{formatHashrate(v)}</span>
             ))}
           </div>
           <div className="flex-1 relative">
@@ -117,14 +127,16 @@ export function HashrateChart({ minerId }: HashrateChartProps) {
                 points={data
                   .map((d, i) => {
                     const x = (i / (data.length - 1 || 1)) * 100
-                    const y = max === min ? 50 : 100 - ((d.hashrate - min) / (max - min)) * 100
+                    const range = max - min
+                    const y = range === 0 || !isFinite(range) ? 50 : 100 - ((d.hashrate - min) / range) * 100
                     return `${x},${y}`
                   })
                   .join(" ")}
               />
               {data.map((d, i) => {
                 const x = (i / (data.length - 1 || 1)) * 100
-                const y = max === min ? 50 : 100 - ((d.hashrate - min) / (max - min)) * 100
+                const range = max - min
+                const y = range === 0 || !isFinite(range) ? 50 : 100 - ((d.hashrate - min) / range) * 100
                 return (
                   <circle key={i} cx={x} cy={y} r="1" fill="currentColor">
                     <title>{`${formatTime(d.timestamp)}: ${formatHashrate(d.hashrate)}`}</title>

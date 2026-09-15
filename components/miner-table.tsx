@@ -1,9 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Copy, Pencil, RefreshCcw, Trash2 } from "lucide-react"
 import type { Miner } from "@/lib/xmrig/types"
 
 interface MinerTableProps {
@@ -13,14 +11,17 @@ interface MinerTableProps {
   onEdit: (miner: Miner) => void
   onDelete: (id: string) => void
   onRefresh: (miner: Miner) => void
+  onDuplicate?: (miner: Miner) => void
 }
 
-function formatHashrate(hps: number): string {
+function formatHashrate(hps: number | null | undefined): string {
+  if (hps == null || isNaN(hps)) return "—"
   if (hps >= 1000) return `${(hps / 1000).toFixed(2)} KH/s`
   return `${hps.toFixed(2)} H/s`
 }
 
-function formatUptime(seconds: number): string {
+function formatUptime(seconds: number | null | undefined): string {
+  if (seconds == null || isNaN(seconds)) return "—"
   const d = Math.floor(seconds / 86400)
   const h = Math.floor((seconds % 86400) / 3600)
   const m = Math.floor((seconds % 3600) / 60)
@@ -29,23 +30,24 @@ function formatUptime(seconds: number): string {
   return `${m}m`
 }
 
-export function MinerTable({ 
-  miners, 
-  selectedMiners, 
-  onToggleSelection, 
-  onEdit, 
+export function MinerTable({
+  miners,
+  selectedMiners,
+  onToggleSelection,
+  onEdit,
   onDelete,
-  onRefresh 
+  onRefresh,
+  onDuplicate,
 }: MinerTableProps) {
   return (
-    <div className="rounded-lg border">
+    <div className="rounded-lg border overflow-x-auto">
       <table className="w-full text-sm">
         <thead className="bg-muted/50">
           <tr>
             <th className="p-2 text-left">
               <input
                 type="checkbox"
-                checked={selectedMiners.size === miners.length && miners.length > 0}
+                checked={selectedMiners.size === miners.length && miners.length > 0 && selectedMiners.size > 0}
                 onChange={() => miners.forEach((m) => onToggleSelection(m.id))}
                 className="rounded"
               />
@@ -63,9 +65,9 @@ export function MinerTable({
         <tbody>
           {miners.map((miner) => {
             const isOnline = miner.lastSummary !== null && miner.error === null
-            const hr = miner.lastSummary?.hashrate.total[0] ?? 0
+            const hr = miner.lastSummary?.hashrate?.total?.[0] ?? null
             const shares = miner.lastSummary?.results
-            const uptime = miner.lastSummary?.connection.uptime ?? 0
+            const uptime = miner.lastSummary?.connection?.uptime ?? null
 
             return (
               <tr key={miner.id} className="border-t hover:bg-muted/30">
@@ -85,13 +87,13 @@ export function MinerTable({
                   {isOnline ? formatHashrate(hr) : "—"}
                 </td>
                 <td className="p-2 text-right">
-                  {isOnline && shares ? `${shares.shares_good}/${shares.shares_total}` : "—"}
+                  {isOnline && shares ? `${shares.shares_good ?? 0}/${shares.shares_total ?? 0}` : "—"}
                 </td>
                 <td className="p-2 text-right">
                   {isOnline ? formatUptime(uptime) : "—"}
                 </td>
                 <td className="p-2 text-center">
-                  <span className={`inline-block w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <span className={`inline-block w-2 h-2 rounded-full ${isOnline ? "bg-green-500" : "bg-red-500"}`} />
                 </td>
                 <td className="p-2 text-center">
                   <div className="flex gap-1 justify-center flex-wrap">
@@ -104,14 +106,19 @@ export function MinerTable({
                 </td>
                 <td className="p-2 text-right">
                   <div className="flex gap-1 justify-end">
-                    <Button size="sm" variant="ghost" onClick={() => onRefresh(miner)}>
-                      ↻
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onRefresh(miner)} title="Refresh">
+                      <RefreshCcw className="h-3.5 w-3.5" />
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => onEdit(miner)}>
-                      ✎
+                    {onDuplicate && (
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDuplicate(miner)} title="Duplicate">
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onEdit(miner)} title="Edit">
+                      <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => onDelete(miner.id)}>
-                      ✕
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onDelete(miner.id)} title="Delete">
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </td>
