@@ -25,7 +25,13 @@ if (!authSecret) {
   }
 }
 
+const allowedDevOrigins = (process.env.ALLOWED_DEV_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean)
+
 const nextConfig: NextConfig = {
+  allowedDevOrigins,
   env: {
     P2POOL_API_DIR,
     XMRIG_DATA_DIR: DATA_DIR,
