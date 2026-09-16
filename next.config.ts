@@ -30,16 +30,8 @@ const allowedDevOrigins = (process.env.ALLOWED_DEV_ORIGINS || "")
   .map((s) => s.trim())
   .filter(Boolean)
 
-console.log("[next.config] allowedDevOrigins:", allowedDevOrigins)
-
 const nextConfig: NextConfig = {
-  allowedDevOrigins: [
-    ...(process.env.ALLOWED_DEV_ORIGINS || "").split(",").map((s) => s.trim()).filter(Boolean),
-    "192.168.2.100",
-    "http://192.168.2.100",
-    "http://192.168.2.100:49100",
-    "192.168.2.100:49100",
-  ],
+  allowedDevOrigins,
   env: {
     P2POOL_API_DIR,
     XMRIG_DATA_DIR: DATA_DIR,
@@ -47,16 +39,9 @@ const nextConfig: NextConfig = {
   },
 }
 
-const sentryConfig = withSentryConfig(nextConfig, {
+export default withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: true,
 })
-
-// Ensure allowedDevOrigins survives Sentry wrapper
-if (!sentryConfig.allowedDevOrigins) {
-  sentryConfig.allowedDevOrigins = nextConfig.allowedDevOrigins
-}
-
-export default sentryConfig
