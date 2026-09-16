@@ -22,7 +22,6 @@ import type { Miner } from "@/lib/xmrig/types"
 
 const API = "/api/miners"
 const AUTO_REFRESH_MS = 30_000
-const CRON_INTERVAL_MS = 60_000
 const SELECTION_KEY = "xmrig-selection"
 const RETENTION_KEY = "xmrig-retention-days"
 const COLLAPSED_KEY = "xmrig-collapsed-groups"
@@ -91,12 +90,6 @@ export default function DashboardPage() {
     return 30
   })
   const [search, setSearch] = useState("")
-
-  async function callCron() {
-    const cronRes = await fetch("/api/cron", { method: "POST", headers: { "Content-Type": "application/json" } })
-    if (!cronRes.ok) return false
-    return true
-  }
 
   const [selectedMiners, setSelectedMiners] = useState<Set<string>>(() => {
     if (typeof window !== "undefined") {
@@ -198,7 +191,6 @@ export default function DashboardPage() {
   const refreshAll = useCallback(async () => {
     setRefreshing(true)
     try {
-      await callCron()
       const res = await fetch(API)
       const data: Miner[] = await res.json()
 
@@ -233,13 +225,8 @@ export default function DashboardPage() {
       intervalRef.current = setInterval(refreshAll, AUTO_REFRESH_MS)
     })
 
-    const cronRef = setInterval(async () => {
-      await callCron()
-    }, CRON_INTERVAL_MS)
-
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
-      clearInterval(cronRef)
     }
   }, [refreshAll])
 
@@ -490,6 +477,7 @@ export default function DashboardPage() {
     combinedUptime,
     p2poolUrl: endpoints.p2poolUrl,
     moneroUrl: endpoints.moneroUrl,
+    tariUrl: endpoints.tariUrl,
     onOpenNetworkSettings: () => setShowNetworkSettings(true),
   }
 

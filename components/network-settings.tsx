@@ -72,6 +72,21 @@ export function NetworkSettings({ onSave, onClose }: NetworkSettingsProps) {
               Use mainnet defaults. Set restricted-rpc on monerod for safer public access.
             </p>
           </div>
+
+          <div className="border rounded-lg p-4 space-y-3">
+            <h3 className="font-medium text-sm">Tari Node (Minotari)</h3>
+            <div className="space-y-2">
+              <Label>HTTP API URL</Label>
+              <Input
+                placeholder="http://127.0.0.1:9000"
+                value={form.tariUrl}
+                onChange={(e) => setForm((f) => ({ ...f, tariUrl: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Minotari base node HTTP API. Default port: 9000 (mainnet).
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-end gap-2">

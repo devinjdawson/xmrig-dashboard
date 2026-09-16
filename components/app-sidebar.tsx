@@ -35,6 +35,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   combinedUptime: string
   p2poolUrl: string
   moneroUrl: string
+  tariUrl: string
   onOpenNetworkSettings: () => void
 }
 
@@ -54,12 +55,14 @@ export function AppSidebar({
   combinedUptime,
   p2poolUrl,
   moneroUrl,
+  tariUrl,
   onOpenNetworkSettings,
   ...props
 }: AppSidebarProps) {
   const [minersOpen, setMinersOpen] = useState(true)
   const [p2poolStats, setP2poolStats] = useState<any>(null)
   const [moneroStats, setMoneroStats] = useState<any>(null)
+  const [tariStats, setTariStats] = useState<any>(null)
 
   useEffect(() => {
     if (!p2poolUrl) return
@@ -90,6 +93,21 @@ export function AppSidebar({
     const iv = setInterval(load, 60000)
     return () => { active = false; clearInterval(iv) }
   }, [moneroUrl])
+
+  useEffect(() => {
+    if (!tariUrl) return
+    let active = true
+    async function load() {
+      try {
+        const res = await fetch(`/api/tari?url=${encodeURIComponent(tariUrl)}`)
+        const data = await res.json()
+        if (active && !data.error) setTariStats(data)
+      } catch {}
+    }
+    load()
+    const iv = setInterval(load, 60000)
+    return () => { active = false; clearInterval(iv) }
+  }, [tariUrl])
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -208,6 +226,31 @@ export function AppSidebar({
                     <div className="text-[11px] text-muted-foreground">Synced</div>
                     <div className="text-sm font-bold">{moneroStats.info.synchronized ? "Yes" : "No"}</div>
                   </div>
+                </div>
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Tari Node Summary */}
+        {tariUrl && tariStats?.metadata && (
+          <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+            <SidebarGroupLabel>Tari Node</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="px-3 py-2 space-y-1.5">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="text-[11px] text-muted-foreground">Height</div>
+                    <div className="text-sm font-bold tabular-nums">{tariStats.metadata.best_block_height?.toLocaleString() ?? "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-muted-foreground">Synced</div>
+                    <div className="text-sm font-bold">{tariStats.is_synced ? "Yes" : "No"}</div>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-foreground">Difficulty</div>
+                  <div className="text-sm font-bold tabular-nums">{tariStats.metadata.accumulated_difficulty ? Number(tariStats.metadata.accumulated_difficulty).toLocaleString() : "—"}</div>
                 </div>
               </div>
             </SidebarGroupContent>

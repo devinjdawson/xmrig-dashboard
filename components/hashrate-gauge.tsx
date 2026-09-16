@@ -11,7 +11,6 @@ import {
   ChartContainer,
   type ChartConfig,
 } from "@/components/ui/chart"
-import { RollingNumber } from "@/components/ui/rolling-number"
 
 interface HashrateGaugeProps {
   current: number | null | undefined
@@ -19,8 +18,8 @@ interface HashrateGaugeProps {
 }
 
 const chartConfig: ChartConfig = {
-  current: { label: "Current", color: "var(--color-current)" },
-  max: { label: "Max", color: "var(--color-max)" },
+  current: { label: "Current", color: "#10b981" },
+  max: { label: "Max", color: "#e5e7eb" },
 }
 
 function formatHashrate(hps: number | null | undefined): string {
@@ -59,9 +58,6 @@ export function HashrateGauge({ current, max }: HashrateGaugeProps) {
               stackId="a"
               fill="var(--color-max)"
               cornerRadius={6}
-              isAnimationActive
-              animationDuration={600}
-              animationEasing="ease-out"
               className="stroke-transparent"
             />
             <RadialBar
@@ -69,9 +65,6 @@ export function HashrateGauge({ current, max }: HashrateGaugeProps) {
               stackId="a"
               fill="var(--color-current)"
               cornerRadius={6}
-              isAnimationActive
-              animationDuration={600}
-              animationEasing="ease-out"
               className="stroke-transparent"
             />
             <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
@@ -94,14 +87,14 @@ export function HashrateGauge({ current, max }: HashrateGaugeProps) {
                           y={cy}
                           className="fill-foreground text-3xl font-extrabold tabular-nums tracking-tight"
                         >
-                          <RollingNumber value={cur} />
+                          {cur >= 1000 ? (cur / 1000).toFixed(2) : cur.toFixed(1)}
                         </tspan>
                         <tspan
                           x={cx}
                           y={cy + 16}
                           className="fill-foreground text-sm font-medium"
                         >
-                          H/s
+                          {formatHashrate(cur).split(" ").pop()}
                         </tspan>
                         <tspan
                           x={cx}
