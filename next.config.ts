@@ -30,6 +30,8 @@ const allowedDevOrigins = (process.env.ALLOWED_DEV_ORIGINS || "")
   .map((s) => s.trim())
   .filter(Boolean)
 
+console.log("[next.config] allowedDevOrigins:", allowedDevOrigins)
+
 const nextConfig: NextConfig = {
   allowedDevOrigins,
   env: {
