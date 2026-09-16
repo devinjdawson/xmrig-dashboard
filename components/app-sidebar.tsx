@@ -35,6 +35,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   combinedUptime: string
   p2poolUrl: string
   moneroUrl: string
+  moneroUser: string
+  moneroPass: string
   tariUrl: string
   onOpenNetworkSettings: () => void
 }
@@ -55,6 +57,8 @@ export function AppSidebar({
   combinedUptime,
   p2poolUrl,
   moneroUrl,
+  moneroUser,
+  moneroPass,
   tariUrl,
   onOpenNetworkSettings,
   ...props
@@ -84,15 +88,18 @@ export function AppSidebar({
     let active = true
     async function load() {
       try {
-        const res = await fetch(`/api/monero?url=${encodeURIComponent(moneroUrl)}`)
+        const params = new URLSearchParams({ url: moneroUrl })
+        if (moneroUser) params.set("user", moneroUser)
+        if (moneroPass) params.set("pass", moneroPass)
+        const res = await fetch(`/api/monero?${params}`)
         const data = await res.json()
-        if (active) setMoneroStats(data)
+        if (active && !data.error) setMoneroStats(data)
       } catch {}
     }
     load()
     const iv = setInterval(load, 60000)
     return () => { active = false; clearInterval(iv) }
-  }, [moneroUrl])
+  }, [moneroUrl, moneroUser, moneroPass])
 
   useEffect(() => {
     if (!tariUrl) return
@@ -224,7 +231,7 @@ export function AppSidebar({
                   </div>
                   <div>
                     <div className="text-[11px] text-muted-foreground">Synced</div>
-                    <div className="text-sm font-bold">{moneroStats.info.synchronized ? "Yes" : "No"}</div>
+                    <div className="text-sm font-bold">{moneroStats.info.synchronized ?? moneroStats.info.synced ? "Yes" : "No"}</div>
                   </div>
                 </div>
               </div>

@@ -477,6 +477,8 @@ export default function DashboardPage() {
     combinedUptime,
     p2poolUrl: endpoints.p2poolUrl,
     moneroUrl: endpoints.moneroUrl,
+    moneroUser: endpoints.moneroUser,
+    moneroPass: endpoints.moneroPass,
     tariUrl: endpoints.tariUrl,
     onOpenNetworkSettings: () => setShowNetworkSettings(true),
   }
