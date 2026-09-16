@@ -61,6 +61,9 @@ export function MinerSummary({ summary, loading }: MinerSummaryProps) {
   const ping = summary.connection?.ping ?? 0
   const failures = summary.connection?.failures ?? 0
   const pool = summary.connection?.pool ?? "—"
+  // XMRig "failures" is a cumulative disconnect counter since startup, not current state.
+  // The live signal is connection.uptime: duration of the current active connection.
+  const connected = uptime > 0 || (summary.hashrate?.total?.[0] ?? 0) > 0
 
   // Best 10 hashes for a compact sparkline-like display
   const bestResults = (summary.results?.best ?? []).slice(0, 10)
@@ -106,8 +109,8 @@ export function MinerSummary({ summary, loading }: MinerSummaryProps) {
               <Timer className="h-3.5 w-3.5" />
               Uptime
             </CardTitle>
-            <Badge variant={failures > 0 ? "destructive" : "success"}>
-              {failures === 0 ? "Healthy" : `${failures} fails`}
+            <Badge variant={connected ? "success" : "destructive"}>
+              {connected ? "Healthy" : "Down"}
             </Badge>
           </CardHeader>
           <CardContent>
@@ -155,8 +158,8 @@ export function MinerSummary({ summary, loading }: MinerSummaryProps) {
             <Server className="h-3.5 w-3.5" />
             Pool
           </CardTitle>
-          <Badge variant={failures > 0 ? "destructive" : "success"}>
-            {failures > 0 ? "Disconnected" : "Connected"}
+          <Badge variant={connected ? "success" : "destructive"}>
+            {connected ? "Connected" : "Disconnected"}
           </Badge>
         </CardHeader>
         <CardContent>

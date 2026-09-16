@@ -1,4 +1,4 @@
-import { db, miners as minersTable } from "@/lib/db"
+import { db, miners as minersTable, minerSnapshots as snapshotsTable } from "@/lib/db"
 import { serializeMiner } from "@/lib/serialize-miner"
 import { eq } from "drizzle-orm"
 import { NextRequest, NextResponse } from "next/server"
@@ -57,6 +57,9 @@ export async function DELETE(
     return NextResponse.json({ error: "not found" }, { status: 404 })
   }
 
-  await db.delete(minersTable).where(eq(minersTable.id, id))
+  await db.transaction(async (tx) => {
+    await tx.delete(snapshotsTable).where(eq(snapshotsTable.minerId, id))
+    await tx.delete(minersTable).where(eq(minersTable.id, id))
+  })
   return NextResponse.json({ ok: true })
 }
