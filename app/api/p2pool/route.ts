@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
+import { readFile } from "fs/promises"
+import path from "path"
 
 export interface P2PoolStats {
   pool_statistics: {
@@ -125,10 +127,48 @@ async function tryEndpoint(url: string): Promise<DiagnosticResult> {
   }
 }
 
+async function readApiFile(apiDir: string, relative: string): Promise<any> {
+  try {
+    const fullPath = path.join(apiDir, ...relative.split("/"))
+    if (!fullPath.startsWith(path.resolve(apiDir))) return null
+    const content = await readFile(fullPath, "utf-8")
+    return JSON.parse(content)
+  } catch {
+    return null
+  }
+}
+
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get("url")
   const testOnly = req.nextUrl.searchParams.get("test") === "true"
-  
+
+  const apiDir = process.env.P2POOL_API_DIR
+  if (apiDir && !testOnly) {
+    const [statsRaw, blocksRaw, network, stratum, p2p] = await Promise.all([
+      readApiFile(apiDir, "pool/stats"),
+      readApiFile(apiDir, "pool/blocks"),
+      readApiFile(apiDir, "network/stats"),
+      readApiFile(apiDir, "local/stratum"),
+      readApiFile(apiDir, "local/p2p"),
+    ])
+
+    if (statsRaw?.pool_statistics || stratum) {
+      const stats = statsRaw?.pool_statistics
+        ? statsRaw
+        : { pool_statistics: stratum }
+      const blocks = Array.isArray(blocksRaw) ? blocksRaw.slice(0, 20) : []
+      return NextResponse.json({
+        stats,
+        blocks,
+        network,
+        stratum,
+        p2p,
+        error: null,
+        source: "local",
+      })
+    }
+  }
+
   if (!url) {
     return NextResponse.json({ error: "url parameter required" }, { status: 400 })
   }
@@ -274,11 +314,13 @@ export async function GET(req: NextRequest) {
       stats: null,
       blocks: [],
       network: null,
+      stratum: null,
       p2p: null,
       error: `No working P2Pool endpoint found.\n\nTried:\n${allErrors}`,
       diagnostics
     }, { status: 503 })
   }
   
-  return NextResponse.json({ stats, blocks, network, p2p, error: null, diagnostics })
+  const stratum = stats?.pool_statistics?.hashrate_15m !== undefined ? stats.pool_statistics : null
+  return NextResponse.json({ stats, blocks, network, stratum, p2p, error: null, diagnostics, source: "http" })
 }

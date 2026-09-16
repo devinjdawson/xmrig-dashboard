@@ -42,9 +42,18 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 function formatHashrate(hps: number): string {
+  if (hps >= 1e9) return `${(hps / 1e9).toFixed(2)} GH/s`
   if (hps >= 1e6) return `${(hps / 1e6).toFixed(2)} MH/s`
   if (hps >= 1e3) return `${(hps / 1e3).toFixed(2)} KH/s`
   return `${hps.toFixed(0)} H/s`
+}
+
+function timeAgo(ts: number): string {
+  const secs = Math.floor(Date.now() / 1000 - ts)
+  if (secs < 60) return `${secs}s ago`
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`
+  return `${Math.floor(secs / 86400)}d ago`
 }
 
 export function AppSidebar({
