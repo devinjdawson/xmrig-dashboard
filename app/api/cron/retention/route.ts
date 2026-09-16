@@ -5,11 +5,12 @@ import { NextRequest, NextResponse } from "next/server"
 await initDb()
 
 export async function POST(req: NextRequest) {
-  const auth = req.headers.get("authorization")
-  const expectedToken = "Bearer " + (process.env.XMRIG_CRON_SECRET || "change-me")
-  
-  if (auth !== expectedToken && process.env.XMRIG_CRON_SECRET) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+  const cronSecret = process.env.XMRIG_CRON_SECRET
+  if (cronSecret) {
+    const auth = req.headers.get("authorization")
+    if (auth !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 })
+    }
   }
 
   const body = await req.json().catch(() => ({}))
