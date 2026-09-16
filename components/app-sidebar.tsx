@@ -73,19 +73,32 @@ export function AppSidebar({
   ...props
 }: AppSidebarProps) {
   const [minersOpen, setMinersOpen] = useState(true)
-  const [p2poolStats, setP2poolStats] = useState<any>(null)
+  const [p2poolData, setP2poolData] = useState<any>(null)
+  const [p2poolError, setP2poolError] = useState<string | null>(null)
   const [moneroStats, setMoneroStats] = useState<any>(null)
+  const [moneroError, setMoneroError] = useState<string | null>(null)
   const [tariStats, setTariStats] = useState<any>(null)
 
   useEffect(() => {
-    if (!p2poolUrl) return
     let active = true
     async function load() {
       try {
-        const res = await fetch(`/api/p2pool?url=${encodeURIComponent(p2poolUrl)}`)
+        const qs = p2poolUrl ? `?url=${encodeURIComponent(p2poolUrl)}` : ""
+        const res = await fetch(`/api/p2pool${qs}`)
         const data = await res.json()
-        if (active && data.stats) setP2poolStats(data.stats.pool_statistics || data.stats)
-      } catch {}
+        if (!active) return
+        if (data?.stats || data?.stratum) {
+          setP2poolData(data)
+          setP2poolError(null)
+        } else if (p2poolUrl) {
+          setP2poolData(null)
+          setP2poolError(data?.error ? String(data.error).split("\n")[0] : `HTTP ${res.status}`)
+        }
+      } catch (e: any) {
+        if (!active) return
+        setP2poolData(null)
+        if (p2poolUrl) setP2poolError(e?.message || "Failed to fetch")
+      }
     }
     load()
     const iv = setInterval(load, 60000)
@@ -102,8 +115,19 @@ export function AppSidebar({
         if (moneroPass) params.set("pass", moneroPass)
         const res = await fetch(`/api/monero?${params}`)
         const data = await res.json()
-        if (active && !data.error) setMoneroStats(data)
-      } catch {}
+        if (!active) return
+        if (data?.info) {
+          setMoneroStats(data)
+          setMoneroError(null)
+        } else {
+          setMoneroStats(null)
+          setMoneroError(data?.error || `HTTP ${res.status}`)
+        }
+      } catch (e: any) {
+        if (!active) return
+        setMoneroStats(null)
+        setMoneroError(e?.message || "Failed to fetch")
+      }
     }
     load()
     const iv = setInterval(load, 60000)
@@ -193,57 +217,91 @@ export function AppSidebar({
         </SidebarGroup>
 
         {/* P2Pool Summary */}
-        {p2poolUrl && p2poolStats && (
+        {(p2poolData || (p2poolUrl && p2poolError)) && (
           <SidebarGroup className="group-data-[collapsible=icon]:hidden">
             <SidebarGroupLabel>P2Pool</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="px-3 py-2 space-y-1.5">
-                <div>
-                  <div className="text-[11px] text-muted-foreground">Pool Hashrate</div>
-                  <div className="text-sm font-bold tabular-nums">{formatHashrate(p2poolStats.hashRate ?? p2poolStats.hash_rate_15m ?? 0)}</div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <div className="text-[11px] text-muted-foreground">Miners</div>
-                    <div className="text-sm font-bold tabular-nums">{p2poolStats.miners ?? 0}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-muted-foreground">Height</div>
-                    <div className="text-sm font-bold tabular-nums">{p2poolStats.sidechainHeight?.toLocaleString() ?? "—"}</div>
-                  </div>
-                </div>
-              </div>
+              {p2poolError && !p2poolData ? (
+                <div className="px-3 py-2 text-[11px] text-destructive break-words">{p2poolError}</div>
+              ) : (
+                (() => {
+                  const poolStats = p2poolData?.stats?.pool_statistics || null
+                  const stratumStats = p2poolData?.stratum || null
+                  const p2pStats = p2poolData?.p2p || null
+                  return (
+                    <div className="px-3 py-2 space-y-1.5">
+                      <div>
+                        <div className="text-[11px] text-muted-foreground">Pool Hashrate</div>
+                        <div className="text-sm font-bold tabular-nums">
+                          {formatHashrate(poolStats?.hashRate ?? stratumStats?.hashrate_15m ?? 0)}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <div className="text-[11px] text-muted-foreground">Miners</div>
+                          <div className="text-sm font-bold tabular-nums">{poolStats?.miners ?? 0}</div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] text-muted-foreground">Height</div>
+                          <div className="text-sm font-bold tabular-nums">{poolStats?.sidechainHeight?.toLocaleString() ?? "—"}</div>
+                        </div>
+                      </div>
+                      {stratumStats && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <div className="text-[11px] text-muted-foreground">Connections</div>
+                            <div className="text-sm font-bold tabular-nums">{stratumStats.connections ?? p2pStats?.connections ?? 0}</div>
+                          </div>
+                          <div>
+                            <div className="text-[11px] text-muted-foreground">Shares Ok/Fail</div>
+                            <div className="text-sm font-bold tabular-nums">{stratumStats.shares_found ?? 0}/{stratumStats.shares_failed ?? 0}</div>
+                          </div>
+                        </div>
+                      )}
+                      {poolStats?.lastBlockFoundTime > 0 && (
+                        <div className="text-[10px] text-muted-foreground">
+                          Last block {timeAgo(poolStats.lastBlockFoundTime)}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()
+              )}
             </SidebarGroupContent>
           </SidebarGroup>
         )}
 
         {/* Monero Node Summary */}
-        {moneroUrl && moneroStats?.info && (
+        {moneroUrl && (moneroStats?.info || moneroError) && (
           <SidebarGroup className="group-data-[collapsible=icon]:hidden">
             <SidebarGroupLabel>Monero Node</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="px-3 py-2 space-y-1.5">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <div className="text-[11px] text-muted-foreground">Height</div>
-                    <div className="text-sm font-bold tabular-nums">{moneroStats.info.height?.toLocaleString() ?? "—"}</div>
+              {moneroError && !moneroStats?.info ? (
+                <div className="px-3 py-2 text-[11px] text-destructive break-words">{moneroError}</div>
+              ) : (
+                <div className="px-3 py-2 space-y-1.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">Height</div>
+                      <div className="text-sm font-bold tabular-nums">{moneroStats.info.height?.toLocaleString() ?? "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">Peers</div>
+                      <div className="text-sm font-bold tabular-nums">{moneroStats.info.outgoing_connections_count ?? 0}/{moneroStats.info.incoming_connections_count ?? 0}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-[11px] text-muted-foreground">Peers</div>
-                    <div className="text-sm font-bold tabular-nums">{moneroStats.info.outgoing_connections_count ?? 0}/{moneroStats.info.incoming_connections_count ?? 0}</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">Tx Pool</div>
+                      <div className="text-sm font-bold tabular-nums">{moneroStats.info.tx_pool_size ?? 0}</div>
+                    </div>
+                    <div>
+                      <div className="text-[11px] text-muted-foreground">Synced</div>
+                      <div className="text-sm font-bold">{moneroStats.info.synchronized ?? moneroStats.info.synced ? "Yes" : "No"}</div>
+                    </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <div className="text-[11px] text-muted-foreground">Tx Pool</div>
-                    <div className="text-sm font-bold tabular-nums">{moneroStats.info.tx_pool_size ?? 0}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-muted-foreground">Synced</div>
-                    <div className="text-sm font-bold">{moneroStats.info.synchronized ?? moneroStats.info.synced ? "Yes" : "No"}</div>
-                  </div>
-                </div>
-              </div>
+              )}
             </SidebarGroupContent>
           </SidebarGroup>
         )}

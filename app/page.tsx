@@ -214,6 +214,8 @@ export default function DashboardPage() {
 
       const updated = results.map((r) => (r.status === "fulfilled" ? r.value : null)).filter(Boolean) as Miner[]
       setMiners(updated)
+    } catch {
+      // transient failure (server restart, network blip) — keep stale data
     } finally {
       setRefreshing(false)
     }
