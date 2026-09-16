@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MinerCard } from "@/components/miner-card"
 import { Card } from "@/components/ui/card"
-import { CumulativeStats } from "@/components/cumulative-stats"
 import { DashboardToolbar } from "@/components/dashboard-toolbar"
 import { MinerTable } from "@/components/miner-table"
 import { GroupManager } from "@/components/group-manager"
@@ -15,8 +14,9 @@ import { EditMinerModal } from "@/components/edit-miner-modal"
 import { DuplicateMinerModal } from "@/components/duplicate-miner-modal"
 import { MinerGroup } from "@/components/miner-group"
 import { MinerGrid } from "@/components/miner-grid"
-import { P2PoolCard } from "@/components/p2pool-card"
-import { MoneroCard } from "@/components/monero-card"
+import { AppSidebar } from "@/components/app-sidebar"
+import { SiteHeader } from "@/components/site-header"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { loadEndpoints, saveEndpoints, type NetworkEndpoints } from "@/lib/network-endpoints"
 import type { Miner } from "@/lib/xmrig/types"
 
@@ -451,41 +451,82 @@ export default function DashboardPage() {
     return sortedKeys.map((k) => ({ label: k, miners: buckets.get(k)! }))
   }, [filteredAndSortedMiners])
 
+  const totalHashrate = useMemo(() =>
+    miners.reduce((sum, m) => sum + (m.lastSummary?.hashrate?.total?.[0] ?? 0), 0),
+    [miners]
+  )
+  const onlineCount = useMemo(() =>
+    miners.filter((m) => m.lastSummary !== null && m.error === null).length,
+    [miners]
+  )
+  const totalSharesGood = useMemo(() =>
+    miners.reduce((sum, m) => sum + (m.lastSummary?.results?.shares_good ?? 0), 0),
+    [miners]
+  )
+  const totalSharesTotal = useMemo(() =>
+    miners.reduce((sum, m) => sum + (m.lastSummary?.results?.shares_total ?? 0), 0),
+    [miners]
+  )
+  const avgAcceptRate = totalSharesTotal > 0
+    ? ((totalSharesGood / totalSharesTotal) * 100).toFixed(1)
+    : "0.0"
+  const combinedUptime = useMemo(() => {
+    const total = miners.reduce((sum, m) => sum + (m.lastSummary?.connection?.uptime ?? 0), 0)
+    const d = Math.floor(total / 86400)
+    const h = Math.floor((total % 86400) / 3600)
+    const mi = Math.floor((total % 3600) / 60)
+    if (d > 0) return `${d}d ${h}h`
+    if (h > 0) return `${h}h ${mi}m`
+    return `${mi}m`
+  }, [miners])
+
+  const sidebarProps = {
+    miners,
+    totalHashrate,
+    onlineCount,
+    totalSharesGood,
+    totalSharesTotal,
+    avgAcceptRate,
+    combinedUptime,
+    p2poolUrl: endpoints.p2poolUrl,
+    moneroUrl: endpoints.moneroUrl,
+    onOpenNetworkSettings: () => setShowNetworkSettings(true),
+  }
+
   if (loading) {
     return (
-      <div className="flex min-h-svh flex-col p-6">
-        <div className="mx-auto w-full max-w-6xl space-y-6">
-          <div className="h-8 w-48 animate-pulse rounded bg-muted" />
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-32 animate-pulse rounded-xl bg-muted" />
-          ))}
-        </div>
-      </div>
+      <SidebarProvider>
+        <AppSidebar {...sidebarProps} miners={[]} />
+        <SidebarInset>
+          <SiteHeader />
+          <div className="flex flex-1 flex-col p-6">
+            <div className="mx-auto w-full max-w-6xl space-y-6">
+              <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-32 animate-pulse rounded-xl bg-muted" />
+              ))}
+            </div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
     )
   }
 
   return (
-    <div className="flex min-h-svh flex-col p-6">
-      <div className="mx-auto w-full max-w-6xl space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">XMRig Dashboard</h1>
-            <p className="text-sm text-muted-foreground">
-              Monitor multiple XMRig miners
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowNetworkSettings(true)}>
-              Network
-            </Button>
-            <Button variant="outline" onClick={refreshAll} disabled={refreshing}>
-              {refreshing ? "Refreshing..." : "Refresh All"}
-            </Button>
-            <Button onClick={() => setShowAdd(!showAdd)}>
-              {showAdd ? "Cancel" : "+ Add Miner"}
-            </Button>
-          </div>
-        </div>
+    <SidebarProvider>
+      <AppSidebar {...sidebarProps} />
+      <SidebarInset>
+        <SiteHeader />
+        <div className="flex flex-1 flex-col p-6">
+          <div className="mx-auto w-full max-w-6xl space-y-6">
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={refreshAll} disabled={refreshing}>
+                {refreshing ? "Refreshing..." : "Refresh All"}
+              </Button>
+              <Button onClick={() => setShowAdd(!showAdd)}>
+                {showAdd ? "Cancel" : "+ Add Miner"}
+              </Button>
+            </div>
 
         {showAdd && (
           <Card className="p-4">
@@ -547,13 +588,6 @@ export default function DashboardPage() {
 
         {miners.length > 0 && (
           <>
-            <div className="grid gap-4 md:grid-cols-2">
-              <P2PoolCard url={endpoints.p2poolUrl} enabled={!!endpoints.p2poolUrl} />
-              <MoneroCard url={endpoints.moneroUrl} user={endpoints.moneroUser} pass={endpoints.moneroPass} enabled={!!endpoints.moneroUrl} />
-            </div>
-
-            <CumulativeStats miners={miners} selectedMiners={selectedMiners} />
-
             <DashboardToolbar
               viewMode={viewMode}
               onViewModeChange={setViewMode}
@@ -681,6 +715,8 @@ export default function DashboardPage() {
           onClose={() => setDuplicatingMiner(null)}
         />
       )}
-    </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

@@ -72,14 +72,20 @@ export function MinerGrid({
             <div className="space-y-1.5 my-3">
               <div className="flex justify-between items-baseline">
                 <span className="text-[11px] text-muted-foreground">Hashrate</span>
-                <span className="font-mono text-sm font-medium">
-                  {isOnline ? formatHashrate(hr) : "—"}
+                <span className="text-xl font-extrabold tracking-tight tabular-nums">
+                  {isOnline && hr != null && hr > 0 ? formatHashrate(hr) : "—"}
                 </span>
               </div>
               <div className="flex justify-between items-baseline">
                 <span className="text-[11px] text-muted-foreground">Shares</span>
-                <span className="font-mono text-xs">
-                  {isOnline && shares ? `${shares.shares_good ?? 0}/${shares.shares_total ?? 0}` : "—"}
+                <span className="tabular-nums">
+                  {isOnline && shares ? (
+                    <>
+                      <span className="text-lg font-bold">{shares.shares_good ?? 0}</span>
+                      <span className="text-xs text-muted-foreground mx-0.5">/</span>
+                      <span className="text-xs text-muted-foreground">{shares.shares_total ?? 0}</span>
+                    </>
+                  ) : "—"}
                 </span>
               </div>
               <div className="flex justify-between items-baseline">

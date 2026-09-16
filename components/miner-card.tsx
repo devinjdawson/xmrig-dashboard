@@ -58,7 +58,7 @@ export function MinerCard({ miner, onRefresh, onDelete, onEdit, onDuplicate }: M
   }
 
   const isOnline = miner.lastSummary !== null && miner.error === null
-  const hr = miner.lastSummary?.hashrate?.total?.[0]
+  const hr = miner.lastSummary?.hashrate?.total?.[0] ?? null
 
   return (
     <Card className="w-full overflow-hidden">
@@ -79,7 +79,7 @@ export function MinerCard({ miner, onRefresh, onDelete, onEdit, onDuplicate }: M
               <CardTitle className="text-base truncate">{miner.name}</CardTitle>
             </div>
             <p className="text-xs text-muted-foreground font-mono truncate">
-              {miner.host}:{miner.port}{hr != null ? ` · ${hr.toFixed(2)} H/s` : ""}
+              {miner.host}:{miner.port}{hr != null && hr > 0 ? ` · ${hr >= 1000 ? `${(hr / 1000).toFixed(2)} KH/s` : `${hr.toFixed(1)} H/s`}` : ""}
             </p>
             {(miner.tags || []).length > 0 && (
               <div className="flex gap-1 flex-wrap">

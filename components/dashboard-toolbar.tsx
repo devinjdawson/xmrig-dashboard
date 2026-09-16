@@ -117,6 +117,7 @@ export function DashboardToolbar({
             className="text-xs border rounded px-2 py-1 bg-background"
           >
             <option value="">All</option>
+            <option value="__uncategorized__">Uncategorized</option>
             {groups.map((g) => (
               <option key={g} value={g}>{g}</option>
             ))}

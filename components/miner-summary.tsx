@@ -75,7 +75,7 @@ export function MinerSummary({ summary, loading }: MinerSummaryProps) {
         />
 
         <Card className="overflow-hidden">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+          <CardHeader className="pb-2 space-y-1">
             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
               <CircleDot className="h-3.5 w-3.5" />
               Shares
@@ -85,10 +85,14 @@ export function MinerSummary({ summary, loading }: MinerSummaryProps) {
             </Badge>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-extrabold tabular-nums tracking-tight text-foreground">
-              <RollingNumber value={sharesGood} decimals={0} />
-              <span className="text-muted-foreground text-2xl font-normal mx-1">/</span>
-              <RollingNumber value={sharesTotal} decimals={0} />
+            <div className="tabular-nums tracking-tight text-foreground">
+              <span className="text-4xl font-extrabold">
+                <RollingNumber value={sharesGood} decimals={0} />
+              </span>
+              <span className="text-muted-foreground text-xl font-normal mx-1">/</span>
+              <span className="text-lg text-muted-foreground font-medium">
+                <RollingNumber value={sharesTotal} decimals={0} />
+              </span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Good / Total
@@ -97,7 +101,7 @@ export function MinerSummary({ summary, loading }: MinerSummaryProps) {
         </Card>
 
         <Card className="overflow-hidden">
-          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+          <CardHeader className="pb-2 space-y-1">
             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
               <Timer className="h-3.5 w-3.5" />
               Uptime

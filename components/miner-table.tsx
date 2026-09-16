@@ -84,10 +84,18 @@ export function MinerTable({
                   {miner.host}:{miner.port}
                 </td>
                 <td className="p-2 text-right font-mono">
-                  {isOnline ? formatHashrate(hr) : "—"}
+                  {isOnline && hr != null && hr > 0 ? (
+                    <span className="text-lg font-extrabold tracking-tight">{formatHashrate(hr)}</span>
+                  ) : "—"}
                 </td>
-                <td className="p-2 text-right">
-                  {isOnline && shares ? `${shares.shares_good ?? 0}/${shares.shares_total ?? 0}` : "—"}
+                <td className="p-2 text-right tabular-nums">
+                  {isOnline && shares ? (
+                    <span>
+                      <span className="text-lg font-extrabold tracking-tight">{shares.shares_good ?? 0}</span>
+                      <span className="text-xs text-muted-foreground mx-0.5">/</span>
+                      <span className="text-xs text-muted-foreground">{shares.shares_total ?? 0}</span>
+                    </span>
+                  ) : "—"}
                 </td>
                 <td className="p-2 text-right">
                   {isOnline ? formatUptime(uptime) : "—"}

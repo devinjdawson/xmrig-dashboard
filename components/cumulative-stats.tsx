@@ -78,7 +78,11 @@ export function CumulativeStats({ miners, selectedMiners, title = "Cumulative St
 
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Total Shares</p>
-            <p className="text-3xl font-extrabold tracking-tight">{totalSharesGood}/{totalSharesTotal}</p>
+            <p className="tracking-tight tabular-nums">
+              <span className="text-3xl font-extrabold">{totalSharesGood}</span>
+              <span className="text-lg text-muted-foreground font-normal mx-0.5">/</span>
+              <span className="text-lg text-muted-foreground font-medium">{totalSharesTotal}</span>
+            </p>
             <p className="text-xs text-muted-foreground">{avgAcceptRate}% accept rate</p>
           </div>
 
