@@ -144,25 +144,44 @@ export async function GET(req: NextRequest) {
 
   const apiDir = process.env.P2POOL_API_DIR
   if (apiDir && !testOnly) {
-    const [statsRaw, blocksRaw, network, stratum, p2p] = await Promise.all([
+    const [statsRaw, blocksRaw, networkRaw, stratum, p2p, statsMod] = await Promise.all([
       readApiFile(apiDir, "pool/stats"),
       readApiFile(apiDir, "pool/blocks"),
       readApiFile(apiDir, "network/stats"),
       readApiFile(apiDir, "local/stratum"),
       readApiFile(apiDir, "local/p2p"),
+      readApiFile(apiDir, "stats_mod"),
     ])
 
-    if (statsRaw?.pool_statistics || stratum) {
-      const stats = statsRaw?.pool_statistics
-        ? statsRaw
-        : { pool_statistics: stratum }
-      const blocks = Array.isArray(blocksRaw) ? blocksRaw.slice(0, 20) : []
+    if (statsRaw?.pool_statistics || statsMod?.pool || stratum) {
+      let stats
+      if (statsRaw?.pool_statistics) {
+        stats = statsRaw
+      } else if (statsMod?.pool) {
+        stats = {
+          pool_statistics: {
+            hashRate: statsMod.pool.hashrate,
+            miners: statsMod.pool.miners,
+            roundHashes: statsMod.pool.roundHashes,
+            sidechainHeight: statsMod.network?.height ?? 0,
+          },
+        }
+      } else {
+        stats = { pool_statistics: stratum }
+      }
+      const blocks = Array.isArray(blocksRaw)
+        ? blocksRaw.slice(0, 20)
+        : Array.isArray(statsMod?.pool?.blocks)
+          ? statsMod.pool.blocks.slice(0, 20)
+          : []
+      const network = networkRaw ?? (statsMod?.network ? { height: statsMod.network.height } : null)
       return NextResponse.json({
         stats,
         blocks,
         network,
         stratum,
         p2p,
+        config: statsMod?.config ?? null,
         error: null,
         source: "local",
       })
@@ -322,5 +341,5 @@ export async function GET(req: NextRequest) {
   }
   
   const stratum = stats?.pool_statistics?.hashrate_15m !== undefined ? stats.pool_statistics : null
-  return NextResponse.json({ stats, blocks, network, stratum, p2p, error: null, diagnostics, source: "http" })
+  return NextResponse.json({ stats, blocks, network, stratum, p2p, config: null, error: null, diagnostics, source: "http" })
 }

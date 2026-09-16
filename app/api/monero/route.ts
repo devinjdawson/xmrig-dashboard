@@ -88,16 +88,24 @@ export async function GET(req: NextRequest) {
   const auth = user ? { user, pass: pass || "" } : undefined
 
   try {
-    const [info, feeEstimate, altBlocks] = await Promise.allSettled([
+    const [info, feeEstimate, altBlocks, syncInfo, lastBlock, hardFork, connections] = await Promise.allSettled([
       rpc(cleanedUrl, "get_info", {}, auth),
       rpcRaw(cleanedUrl, "get_fee_estimate", {}, auth),
       rpcRaw(cleanedUrl, "get_alt_blocks_hashes", {}, auth).then((r) => r.blks_hashes || []),
+      rpc(cleanedUrl, "sync_info", {}, auth),
+      rpc(cleanedUrl, "get_last_block_header", {}, auth),
+      rpc(cleanedUrl, "hard_fork_info", {}, auth),
+      rpc(cleanedUrl, "get_connections", {}, auth),
     ])
 
     const result: any = {
       info: info.status === "fulfilled" ? info.value : null,
       feeEstimate: feeEstimate.status === "fulfilled" ? feeEstimate.value : null,
       altBlocks: altBlocks.status === "fulfilled" ? altBlocks.value : [],
+      syncInfo: syncInfo.status === "fulfilled" ? syncInfo.value : null,
+      lastBlock: lastBlock.status === "fulfilled" ? lastBlock.value : null,
+      hardFork: hardFork.status === "fulfilled" ? hardFork.value : null,
+      connections: connections.status === "fulfilled" ? connections.value : null,
       error: info.status === "rejected" ? info.reason?.message : null,
     }
 

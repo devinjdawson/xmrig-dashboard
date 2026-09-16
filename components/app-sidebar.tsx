@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import {
   Sidebar,
   SidebarContent,
@@ -17,13 +18,22 @@ import {
 } from "@/components/ui/sidebar"
 import { NavUser } from "@/components/nav-user"
 import {
-  LayoutDashboardIcon,
   PickaxeIcon,
   CommandIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  ServerIcon,
+  CoinsIcon,
+  ZapIcon,
 } from "lucide-react"
 import type { Miner } from "@/lib/xmrig/types"
+
+const WORKSPACES = [
+  { title: "Miners", href: "/", icon: PickaxeIcon },
+  { title: "P2Pool", href: "/p2pool", icon: ServerIcon },
+  { title: "Monero", href: "/monero", icon: CoinsIcon },
+  { title: "Tari", href: "/tari", icon: ZapIcon },
+]
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   miners: Miner[]
@@ -54,6 +64,10 @@ function timeAgo(ts: number): string {
   if (secs < 3600) return `${Math.floor(secs / 60)}m ago`
   if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`
   return `${Math.floor(secs / 86400)}d ago`
+}
+
+function formatCount(n: number): string {
+  return Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n)
 }
 
 export function AppSidebar({
@@ -141,13 +155,15 @@ export function AppSidebar({
       try {
         const res = await fetch(`/api/tari?url=${encodeURIComponent(tariUrl)}`)
         const data = await res.json()
-        if (active && !data.error) setTariStats(data)
+        if (active && data?.tipInfo) setTariStats(data)
       } catch {}
     }
     load()
     const iv = setInterval(load, 60000)
     return () => { active = false; clearInterval(iv) }
   }, [tariUrl])
+
+  const pathname = usePathname()
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -163,14 +179,24 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupLabel>Workspaces</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Dashboard">
-                  <LayoutDashboardIcon />
-                  <span>Dashboard</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {WORKSPACES.map(({ title, href, icon: Icon }) => {
+                const isActive = pathname === href
+                return (
+                  <SidebarMenuItem key={href}>
+                    <SidebarMenuButton
+                      tooltip={title}
+                      isActive={isActive}
+                      render={<a href={href} />}
+                    >
+                      <Icon />
+                      <span>{title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -228,6 +254,11 @@ export function AppSidebar({
                   const poolStats = p2poolData?.stats?.pool_statistics || null
                   const stratumStats = p2poolData?.stratum || null
                   const p2pStats = p2poolData?.p2p || null
+                  const config = p2poolData?.config || null
+                  const effort =
+                    typeof stratumStats?.current_effort === "number" && stratumStats.current_effort >= 0
+                      ? (stratumStats.current_effort * 100).toFixed(1)
+                      : null
                   return (
                     <div className="px-3 py-2 space-y-1.5">
                       <div>
@@ -246,23 +277,42 @@ export function AppSidebar({
                           <div className="text-sm font-bold tabular-nums">{poolStats?.sidechainHeight?.toLocaleString() ?? "—"}</div>
                         </div>
                       </div>
-                      {stratumStats && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <div className="text-[11px] text-muted-foreground">Connections</div>
+                          <div className="text-sm font-bold tabular-nums">{stratumStats?.connections ?? p2pStats?.connections ?? 0}</div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] text-muted-foreground">Round Hashes</div>
+                          <div className="text-sm font-bold tabular-nums">
+                            {typeof poolStats?.roundHashes === "number" ? formatCount(poolStats.roundHashes) : "—"}
+                          </div>
+                        </div>
+                      </div>
+                      {(stratumStats || effort !== null) && (
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <div className="text-[11px] text-muted-foreground">Connections</div>
-                            <div className="text-sm font-bold tabular-nums">{stratumStats.connections ?? p2pStats?.connections ?? 0}</div>
+                            <div className="text-[11px] text-muted-foreground">Shares Ok/Fail</div>
+                            <div className="text-sm font-bold tabular-nums">{stratumStats?.shares_found ?? 0}/{stratumStats?.shares_failed ?? 0}</div>
                           </div>
                           <div>
-                            <div className="text-[11px] text-muted-foreground">Shares Ok/Fail</div>
-                            <div className="text-sm font-bold tabular-nums">{stratumStats.shares_found ?? 0}/{stratumStats.shares_failed ?? 0}</div>
+                            <div className="text-[11px] text-muted-foreground">Effort</div>
+                            <div className="text-sm font-bold tabular-nums">{effort !== null ? `${effort}%` : "—"}</div>
                           </div>
                         </div>
                       )}
-                      {poolStats?.lastBlockFoundTime > 0 && (
-                        <div className="text-[10px] text-muted-foreground">
-                          Last block {timeAgo(poolStats.lastBlockFoundTime)}
-                        </div>
-                      )}
+                      <div className="text-[10px] text-muted-foreground space-y-0.5">
+                        {poolStats?.lastBlockFoundTime > 0 && (
+                          <div>Last block {timeAgo(poolStats.lastBlockFoundTime)}</div>
+                        )}
+                        {config && (
+                          <div>
+                            Fee {config.fee ?? 0}%
+                            {typeof config.minPaymentThreshold === "number" &&
+                              ` · payout ≥ ${(config.minPaymentThreshold / 1e12).toLocaleString()} XMR`}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )
                 })()
@@ -307,7 +357,7 @@ export function AppSidebar({
         )}
 
         {/* Tari Node Summary */}
-        {tariUrl && tariStats?.metadata && (
+        {tariUrl && tariStats?.tipInfo && (
           <SidebarGroup className="group-data-[collapsible=icon]:hidden">
             <SidebarGroupLabel>Tari Node</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -315,17 +365,32 @@ export function AppSidebar({
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <div className="text-[11px] text-muted-foreground">Height</div>
-                    <div className="text-sm font-bold tabular-nums">{tariStats.metadata.best_block_height?.toLocaleString() ?? "—"}</div>
+                    <div className="text-sm font-bold tabular-nums">{Number(tariStats.tipInfo.metadata?.best_block_height ?? 0).toLocaleString()}</div>
                   </div>
                   <div>
                     <div className="text-[11px] text-muted-foreground">Synced</div>
-                    <div className="text-sm font-bold">{tariStats.is_synced ? "Yes" : "No"}</div>
+                    <div className="text-sm font-bold">{tariStats.tipInfo.is_synced ? "Yes" : "No"}</div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-[11px] text-muted-foreground">Difficulty</div>
-                  <div className="text-sm font-bold tabular-nums">{tariStats.metadata.accumulated_difficulty ? Number(tariStats.metadata.accumulated_difficulty).toLocaleString() : "—"}</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="text-[11px] text-muted-foreground">Peers</div>
+                    <div className="text-sm font-bold tabular-nums">
+                      {tariStats.networkState?.num_peers ?? tariStats.peers?.connected_peers?.length ?? 0}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-muted-foreground">Mempool</div>
+                    <div className="text-sm font-bold tabular-nums">
+                      {tariStats.mempoolStats?.unconfirmed_txs ?? tariStats.mempoolStats?.unconfirmed_transactions ?? 0}
+                    </div>
+                  </div>
                 </div>
+                {tariStats.version && (
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    v{tariStats.version.version ?? tariStats.version}
+                  </div>
+                )}
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
