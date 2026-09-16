@@ -37,34 +37,34 @@ export function HashrateGauge({ current, max }: HashrateGaugeProps) {
   const percent = peak > 0 ? Math.round((cur / peak) * 100) : 0
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-1">
+    <Card className="h-full overflow-hidden">
+      <CardHeader className="pb-0 pt-3 px-4">
         <CardTitle className="text-xs font-medium text-muted-foreground">Hashrate</CardTitle>
       </CardHeader>
-      <CardContent className="pt-1">
+      <CardContent className="pt-0 pb-3 px-2">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square w-full max-w-[200px]"
+          className="mx-auto aspect-square w-full max-w-[160px]"
         >
           <RadialBarChart
             data={chartData}
             endAngle={270}
             startAngle={-90}
-            innerRadius={60}
-            outerRadius={90}
+            innerRadius={50}
+            outerRadius={70}
           >
             <RadialBar
               dataKey="max"
               stackId="a"
               fill="var(--color-max)"
-              cornerRadius={6}
+              cornerRadius={4}
               className="stroke-transparent"
             />
             <RadialBar
               dataKey="current"
               stackId="a"
               fill="var(--color-current)"
-              cornerRadius={6}
+              cornerRadius={4}
               className="stroke-transparent"
             />
             <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
@@ -74,34 +74,20 @@ export function HashrateGauge({ current, max }: HashrateGaugeProps) {
                     const cx = viewBox.cx as number
                     const cy = (viewBox.cy ?? 0) as number
                     return (
-                      <text x={cx} y={cy} textAnchor="middle">
+                      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central">
                         <tspan
                           x={cx}
-                          y={cy - 16}
-                          className="fill-muted-foreground text-[10px]"
+                          dy="-0.6em"
+                          className="fill-foreground text-xl font-extrabold tabular-nums tracking-tight"
                         >
-                          Current
+                          {formatHashrate(cur)}
                         </tspan>
                         <tspan
                           x={cx}
-                          y={cy}
-                          className="fill-foreground text-3xl font-extrabold tabular-nums tracking-tight"
+                          dy="1.4em"
+                          className="fill-muted-foreground text-[9px]"
                         >
-                          {cur >= 1000 ? (cur / 1000).toFixed(2) : cur.toFixed(1)}
-                        </tspan>
-                        <tspan
-                          x={cx}
-                          y={cy + 16}
-                          className="fill-foreground text-sm font-medium"
-                        >
-                          {formatHashrate(cur).split(" ").pop()}
-                        </tspan>
-                        <tspan
-                          x={cx}
-                          y={cy + 30}
-                          className="fill-muted-foreground text-[10px]"
-                        >
-                          {percent}% of {formatHashrate(peak)}
+                          {percent}% of max
                         </tspan>
                       </text>
                     )
@@ -112,22 +98,6 @@ export function HashrateGauge({ current, max }: HashrateGaugeProps) {
             </PolarRadiusAxis>
           </RadialBarChart>
         </ChartContainer>
-        <div className="mt-2 flex justify-center gap-4 text-[11px]">
-          <div className="flex items-center gap-1.5">
-            <span
-              className="h-2 w-2 rounded-sm"
-              style={{ backgroundColor: "var(--color-current)" }}
-            />
-            <span className="text-muted-foreground">Current</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span
-              className="h-2 w-2 rounded-sm"
-              style={{ backgroundColor: "var(--color-max)" }}
-            />
-            <span className="text-muted-foreground">Max</span>
-          </div>
-        </div>
       </CardContent>
     </Card>
   )
