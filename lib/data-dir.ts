@@ -9,6 +9,6 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 
 export const dataDir = DATA_DIR
-export const dbPath = process.env.XMIG_DASHBOARD_DB || path.join(DATA_DIR, "xmrig-dashboard.db")
+export const dbPath = process.env.XMIG_DASHBOARD_DB || path.join(process.cwd(), "xmrig-dashboard.db")
 export const envPath = path.join(DATA_DIR, ".env")
 export const authSecretPath = path.join(DATA_DIR, "auth-secret")

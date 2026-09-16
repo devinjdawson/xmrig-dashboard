@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server"
 import { jwtVerify } from "jose"
 
 const PUBLIC_PATHS = ["/login", "/api/auth"]
+const AUTH_ENABLED = process.env.AUTH_ENABLED === "true"
 
 function getAuthSecret(): string {
   const secret = process.env.AUTH_SECRET
@@ -11,6 +12,8 @@ function getAuthSecret(): string {
 }
 
 export async function middleware(req: NextRequest) {
+  if (!AUTH_ENABLED) return NextResponse.next()
+
   const { pathname } = req.nextUrl
 
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
