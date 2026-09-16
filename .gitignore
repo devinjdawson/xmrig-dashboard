@@ -40,4 +40,3 @@ next-env.d.ts
 xmrig-dashboard.db*
 .data
 xmrig-dashboard.db-shm
-xmrig-dashboard.db-shm
