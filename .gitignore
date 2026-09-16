@@ -40,3 +40,5 @@ next-env.d.ts
 xmrig-dashboard.db*
 .data
 xmrig-dashboard.db-shm
+.reference/p2pool-api-data
+
