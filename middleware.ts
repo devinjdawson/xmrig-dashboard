@@ -11,6 +11,17 @@ function getAuthSecret(): string {
   return secret
 }
 
+function getBaseUrl(fallback: string): string {
+  const url =
+    process.env.AUTH_URL ||
+    process.env.NEXTAUTH_URL ||
+    process.env.SITE_URL ||
+    process.env.PUBLIC_URL ||
+    process.env.APP_URL ||
+    process.env.BASE_URL
+  return url && /^https?:\/\//.test(url) ? url : fallback
+}
+
 export async function middleware(req: NextRequest) {
   if (!AUTH_ENABLED) return NextResponse.next()
 
@@ -28,8 +39,10 @@ export async function middleware(req: NextRequest) {
     req.cookies.get("__Secure-authjs.session-token")?.value ||
     req.cookies.get("authjs.session-token")?.value
 
+  const base = getBaseUrl(req.url)
+
   if (!token) {
-    return NextResponse.redirect(new URL("/login", req.url))
+    return NextResponse.redirect(new URL("/login", base))
   }
 
   try {
@@ -37,7 +50,7 @@ export async function middleware(req: NextRequest) {
     await jwtVerify(token, secret)
     return NextResponse.next()
   } catch {
-    return NextResponse.redirect(new URL("/login", req.url))
+    return NextResponse.redirect(new URL("/login", base))
   }
 }
 

@@ -7,6 +7,18 @@ import Credentials from "next-auth/providers/credentials"
 import { getOrCreateAuthSecret } from "./auth-secrets"
 import { isEmailAllowed } from "./email-validation"
 
+// Resolve the canonical app URL. Auth.js v5 reads AUTH_URL to build callbacks/redirects.
+// Support common aliases so existing setups keep working.
+if (!process.env.AUTH_URL) {
+  const alias =
+    process.env.NEXTAUTH_URL ||
+    process.env.SITE_URL ||
+    process.env.PUBLIC_URL ||
+    process.env.APP_URL ||
+    process.env.BASE_URL
+  if (alias) process.env.AUTH_URL = alias
+}
+
 export function isAllowed(email: string | null | undefined): boolean {
   return isEmailAllowed(email)
 }
