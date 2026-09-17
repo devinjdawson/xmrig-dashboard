@@ -37,6 +37,31 @@ const nextConfig: NextConfig = {
     XMRIG_DATA_DIR: DATA_DIR,
     AUTH_SECRET: authSecret,
   },
+  async headers() {
+    const headers: Array<{ source: string; headers: Array<{ key: string; value: string }> }> = []
+    
+    if (process.env.SENTRY_SEC) {
+      headers.push({
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ${process.env.SENTRY_DSN?.split("@")[1]?.split("/")[0] || ""}; report-uri ${process.env.SENTRY_SEC};`,
+          },
+          {
+            key: "Report-To",
+            value: JSON.stringify({
+              group: "csp",
+              max_age: 31536000,
+              endpoints: [{ url: process.env.SENTRY_SEC }],
+            }),
+          },
+        ],
+      })
+    }
+    
+    return headers
+  },
 }
 
 export default withSentryConfig(nextConfig, {

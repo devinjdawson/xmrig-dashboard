@@ -80,7 +80,8 @@ See [`.env.example`](.env.example) for all options. Key variables:
 | `AUTH_ALLOWED_EMAILS` | Comma-separated allowed emails | (empty = all) |
 | `P2POOL_API_DIR` | Path to P2Pool local API files | — |
 | `XMRIG_CRON_SECRET` | Bearer token for cron endpoints | `change-me` |
-| `SENTRY_DSN` | Enable Sentry error tracking | (disabled) |
+| `SENTRY_DSN` | GlitchTip DSN for error tracking | (disabled) |
+| `SENTRY_SEC` | GlitchTip security endpoint for CSP reporting | (disabled) |
 
 ### Network Endpoints
 
