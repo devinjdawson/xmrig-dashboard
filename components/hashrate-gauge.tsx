@@ -38,34 +38,34 @@ export function HashrateGauge({ current, max }: HashrateGaugeProps) {
 
   return (
     <Card className="h-full overflow-hidden">
-      <CardHeader className="pb-0 pt-3 px-4">
+      <CardHeader className="pb-0 pt-2 px-3">
         <CardTitle className="text-xs font-medium text-muted-foreground">Hashrate</CardTitle>
       </CardHeader>
-      <CardContent className="pt-0 pb-3 px-2">
+      <CardContent className="pt-0 pb-2 px-1">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto w-full max-w-[180px]"
-          style={{ aspectRatio: "1 / 0.75" }}
+          className="mx-auto w-full"
+          style={{ aspectRatio: "1.2 / 1", maxHeight: "140px" }}
         >
           <RadialBarChart
             data={chartData}
-            startAngle={135}
-            endAngle={405}
-            innerRadius={50}
-            outerRadius={70}
+            startAngle={-135}
+            endAngle={135}
+            innerRadius={45}
+            outerRadius={65}
           >
             <RadialBar
               dataKey="max"
               stackId="a"
               fill="var(--color-max)"
-              cornerRadius={4}
+              cornerRadius={3}
               className="stroke-transparent"
             />
             <RadialBar
               dataKey="current"
               stackId="a"
               fill="var(--color-current)"
-              cornerRadius={4}
+              cornerRadius={3}
               className="stroke-transparent"
             />
             <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
@@ -75,18 +75,18 @@ export function HashrateGauge({ current, max }: HashrateGaugeProps) {
                     const cx = viewBox.cx as number
                     const cy = (viewBox.cy ?? 0) as number
                     return (
-                      <text x={cx} y={cy + 10} textAnchor="middle" dominantBaseline="central">
+                      <text x={cx} y={cy + 5} textAnchor="middle" dominantBaseline="central">
                         <tspan
                           x={cx}
-                          dy="-0.6em"
-                          className="fill-foreground text-xl font-extrabold tabular-nums tracking-tight"
+                          dy="-0.5em"
+                          className="fill-foreground text-lg font-extrabold tabular-nums tracking-tight"
                         >
                           {formatHashrate(cur)}
                         </tspan>
                         <tspan
                           x={cx}
-                          dy="1.4em"
-                          className="fill-muted-foreground text-[9px]"
+                          dy="1.2em"
+                          className="fill-muted-foreground text-[8px]"
                         >
                           {percent}% of max
                         </tspan>
