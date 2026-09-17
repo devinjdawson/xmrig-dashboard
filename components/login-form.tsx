@@ -70,9 +70,10 @@ export function LoginForm() {
       }
       
       // Check if user has TOTP enabled
-      const totpStatusRes = await fetch("/api/totp", {
-        method: "GET",
+      const totpStatusRes = await fetch("/api/auth/totp-status", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
       })
       
       if (totpStatusRes.ok) {

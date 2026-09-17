@@ -48,10 +48,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ valid: false, error: "Invalid or expired code" }, { status: 401 })
   }
 
-  db.update(otpCodes)
-    .set({ used: true })
-    .where(eq(otpCodes.id, record.id))
-    .run()
-
+  // Don't mark as used here - let signIn's authorize function consume it
   return NextResponse.json({ valid: true, email })
 }
