@@ -6,7 +6,7 @@ async function tariFetch(
   init?: RequestInit,
 ): Promise<any> {
   const res = await fetch(`${baseUrl}${path}`, {
-    signal: AbortSignal.timeout(10000),
+    signal: AbortSignal.timeout(30000),
     headers: { Accept: "application/json" },
     ...init,
   })

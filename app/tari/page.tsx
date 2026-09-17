@@ -17,6 +17,24 @@ import { RefreshCw } from "lucide-react"
 import { loadEndpoints } from "@/lib/network-endpoints"
 import { timeAgo, formatUptime, formatNum, formatCount } from "@/lib/format"
 
+function formatHugeNumber(n: number | string): string {
+  const num = typeof n === "string" ? Number(n) : n
+  if (!num || isNaN(num) || !isFinite(num)) return "—"
+  if (num >= 1e36) return `${(num / 1e36).toFixed(2)}V`
+  if (num >= 1e33) return `${(num / 1e33).toFixed(2)}Dc`
+  if (num >= 1e30) return `${(num / 1e30).toFixed(2)}No`
+  if (num >= 1e27) return `${(num / 1e27).toFixed(2)}Oc`
+  if (num >= 1e24) return `${(num / 1e24).toFixed(2)}Sp`
+  if (num >= 1e21) return `${(num / 1e21).toFixed(2)}Sx`
+  if (num >= 1e18) return `${(num / 1e18).toFixed(2)}Qi`
+  if (num >= 1e15) return `${(num / 1e15).toFixed(2)}Qa`
+  if (num >= 1e12) return `${(num / 1e12).toFixed(2)}T`
+  if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`
+  if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`
+  if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`
+  return num.toLocaleString()
+}
+
 function Stat({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
     <div>
@@ -137,9 +155,14 @@ export default function TariDashboardPage() {
                 <div className="text-[11px] text-muted-foreground">Block Height</div>
                 <div className="text-2xl font-extrabold tabular-nums">{formatNum(Number(meta.best_block_height ?? 0))}</div>
               </div>
-              <Stat label="Accumulated Difficulty" value={formatCount(Number(meta.accumulated_difficulty ?? 0))} />
-              <Stat label="Synced" value={synced ? "Yes" : "No"} />
+              <Stat label="Accumulated Difficulty" value={formatHugeNumber(meta.accumulated_difficulty ?? 0)} />
               <Stat label="Version" value={version?.version ?? version ?? "—"} mono />
+              <div>
+                <div className="text-[11px] text-muted-foreground">Sync Status</div>
+                <div>
+                  <Badge variant={synced ? "success" : "warning"}>{synced ? "Synced" : "Syncing"}</Badge>
+                </div>
+              </div>
             </div>
             <div className="mt-3 space-y-1 text-xs text-muted-foreground">
               <div>Tip Hash: <span className="font-mono break-all">{meta.best_block_hash ?? tip.tip_hash ?? "—"}</span></div>

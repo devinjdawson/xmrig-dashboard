@@ -44,12 +44,13 @@ export function HashrateGauge({ current, max }: HashrateGaugeProps) {
       <CardContent className="pt-0 pb-3 px-2">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square w-full max-w-[160px]"
+          className="mx-auto w-full max-w-[180px]"
+          style={{ aspectRatio: "1 / 0.75" }}
         >
           <RadialBarChart
             data={chartData}
-            endAngle={270}
-            startAngle={-90}
+            startAngle={135}
+            endAngle={405}
             innerRadius={50}
             outerRadius={70}
           >
@@ -74,7 +75,7 @@ export function HashrateGauge({ current, max }: HashrateGaugeProps) {
                     const cx = viewBox.cx as number
                     const cy = (viewBox.cy ?? 0) as number
                     return (
-                      <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central">
+                      <text x={cx} y={cy + 10} textAnchor="middle" dominantBaseline="central">
                         <tspan
                           x={cx}
                           dy="-0.6em"
