@@ -3,6 +3,7 @@ import { createHash, randomInt } from "crypto"
 import { db, initDb } from "@/lib/db"
 import { otpCodes } from "@/lib/db/schema"
 import { eq, and, gt } from "drizzle-orm"
+import { isEmailAllowed } from "@/lib/email-validation"
 
 const OTP_EXPIRY_MS = 10 * 60 * 1000
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000
@@ -23,16 +24,6 @@ function checkRateLimit(email: string): boolean {
   return true
 }
 
-const ALLOWED_EMAILS = (process.env.AUTH_ALLOWED_EMAILS || "")
-  .split(",")
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean)
-
-function isAllowed(email: string): boolean {
-  if (ALLOWED_EMAILS.length === 0) return true
-  return ALLOWED_EMAILS.includes(email.toLowerCase())
-}
-
 export async function POST(req: NextRequest) {
   await initDb()
 
@@ -48,7 +39,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Valid email required" }, { status: 400 })
   }
 
-  if (!isAllowed(email)) {
+  if (!isEmailAllowed(email)) {
     return NextResponse.json({ sent: true })
   }
 

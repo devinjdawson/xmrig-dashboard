@@ -15,9 +15,10 @@ interface Providers {
 }
 
 export function LoginForm() {
-  const [step, setStep] = useState<"email" | "code">("email")
+  const [step, setStep] = useState<"email" | "code" | "totp">("email")
   const [email, setEmail] = useState("")
   const [code, setCode] = useState("")
+  const [totpCode, setTotpCode] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [providers, setProviders] = useState<Providers | null>(null)
@@ -67,11 +68,64 @@ export function LoginForm() {
         setError(data.error || "Invalid or expired code")
         return
       }
-      const result = await signIn("otp", { email, code, redirect: false, callbackUrl: "/" })
+      
+      // Check if user has TOTP enabled
+      const totpStatusRes = await fetch("/api/totp", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      })
+      
+      if (totpStatusRes.ok) {
+        const totpStatus = await totpStatusRes.json()
+        if (totpStatus.enabled) {
+          setStep("totp")
+          return
+        }
+      }
+      
+      // No TOTP, proceed with login
+      const result = await signIn("otp", { email, code, redirect: false })
       if (result?.error) {
         setError("Session creation failed")
-      } else if (result?.url) {
-        window.location.href = result.url
+      } else {
+        // Wait a bit for session cookie to be set, then redirect
+        setTimeout(() => {
+          window.location.href = "/"
+        }, 100)
+      }
+    } catch {
+      setError("Verification failed")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleVerifyTotp(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    try {
+      // Verify TOTP code
+      const totpRes = await fetch("/api/totp/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, token: totpCode }),
+      })
+      
+      const totpData = await totpRes.json()
+      if (!totpRes.ok || !totpData.valid) {
+        setError(totpData.error || "Invalid TOTP code")
+        return
+      }
+      
+      // TOTP verified, complete login
+      const result = await signIn("otp", { email, code, redirect: false })
+      if (result?.error) {
+        setError("Session creation failed")
+      } else {
+        setTimeout(() => {
+          window.location.href = "/"
+        }, 100)
       }
     } catch {
       setError("Verification failed")
@@ -136,7 +190,7 @@ export function LoginForm() {
             )}
           </FieldGroup>
         </form>
-      ) : (
+      ) : step === "code" ? (
         <form onSubmit={handleVerifyCode}>
           <FieldGroup>
             <div className="flex flex-col items-center gap-2 text-center">
@@ -181,6 +235,55 @@ export function LoginForm() {
                 disabled={loading}
               >
                 Use a different email
+              </Button>
+            </Field>
+          </FieldGroup>
+        </form>
+      ) : (
+        <form onSubmit={handleVerifyTotp}>
+          <FieldGroup>
+            <div className="flex flex-col items-center gap-2 text-center">
+              <div className="flex size-8 items-center justify-center rounded-md">
+                <GalleryVerticalEndIcon className="size-6" />
+              </div>
+              <h1 className="text-xl font-bold">Two-Factor Authentication</h1>
+              <FieldDescription>
+                Enter the 6-digit code from your authenticator app
+              </FieldDescription>
+            </div>
+            {error && (
+              <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>
+            )}
+            <Field>
+              <FieldLabel htmlFor="totp">Authenticator code</FieldLabel>
+              <Input
+                id="totp"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                placeholder="000000"
+                required
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                disabled={loading}
+                autoFocus
+                className="text-center text-2xl tracking-[0.5em] font-mono"
+              />
+            </Field>
+            <Field>
+              <Button type="submit" disabled={loading || totpCode.length !== 6}>
+                {loading ? "Verifying..." : "Verify"}
+              </Button>
+            </Field>
+            <Field>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => { setStep("code"); setTotpCode(""); setError(null) }}
+                disabled={loading}
+              >
+                Back
               </Button>
             </Field>
           </FieldGroup>

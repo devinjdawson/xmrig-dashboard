@@ -5,16 +5,10 @@ import Google from "next-auth/providers/google"
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id"
 import Credentials from "next-auth/providers/credentials"
 import { getOrCreateAuthSecret } from "./auth-secrets"
-
-const ALLOWED_EMAILS = (process.env.AUTH_ALLOWED_EMAILS || "")
-  .split(",")
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean)
+import { isEmailAllowed } from "./email-validation"
 
 export function isAllowed(email: string | null | undefined): boolean {
-  if (!email) return false
-  if (ALLOWED_EMAILS.length === 0) return true
-  return ALLOWED_EMAILS.includes(email.toLowerCase())
+  return isEmailAllowed(email)
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
