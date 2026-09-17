@@ -5,7 +5,7 @@ Sentry.init({
   environment: process.env.SENTRY_ENVIRONMENT ?? "production",
   release: process.env.SENTRY_RELEASE,
 
-  tracesSampleRate: 1.0,
+  tracesSampleRate: 0.01,
 
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,

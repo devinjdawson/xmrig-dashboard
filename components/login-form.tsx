@@ -67,11 +67,11 @@ export function LoginForm() {
         setError(data.error || "Invalid or expired code")
         return
       }
-      const result = await signIn("otp", { email, code, redirect: false })
+      const result = await signIn("otp", { email, code, redirect: false, callbackUrl: "/" })
       if (result?.error) {
         setError("Session creation failed")
-      } else {
-        window.location.href = "/"
+      } else if (result?.url) {
+        window.location.href = result.url
       }
     } catch {
       setError("Verification failed")

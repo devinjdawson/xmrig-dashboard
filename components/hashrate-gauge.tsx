@@ -49,8 +49,8 @@ export function HashrateGauge({ current, max }: HashrateGaugeProps) {
           >
             <RadialBarChart
               data={chartData}
-              startAngle={135}
-              endAngle={405}
+              startAngle={225}
+              endAngle={-45}
               innerRadius="60%"
               outerRadius="85%"
             >

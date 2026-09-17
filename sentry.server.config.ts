@@ -5,7 +5,7 @@ Sentry.init({
   environment: process.env.SENTRY_ENVIRONMENT ?? "production",
   release: process.env.SENTRY_RELEASE,
 
-  tracesSampleRate: 1.0,
+  tracesSampleRate: 0.01,
 
   spotlight: process.env.NODE_ENV === "development",
 })
