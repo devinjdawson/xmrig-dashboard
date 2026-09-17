@@ -6,9 +6,10 @@ import { auth } from "@/lib/auth"
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   await initDb()
+  const { id } = await params
   
   const session = await auth()
   if (!session?.user?.email) {
@@ -24,7 +25,7 @@ export async function PUT(
   const body = await req.json()
   const { name, role } = body
 
-  const existingUser = db.select().from(users).where(eq(users.id, params.id)).get()
+  const existingUser = db.select().from(users).where(eq(users.id, id)).get()
   
   if (!existingUser) {
     return NextResponse.json({ error: "User not found" }, { status: 404 })
@@ -34,18 +35,19 @@ export async function PUT(
   if (name !== undefined) updates.name = name
   if (role !== undefined) updates.role = role
 
-  db.update(users).set(updates).where(eq(users.id, params.id)).run()
+  db.update(users).set(updates).where(eq(users.id, id)).run()
 
-  const updatedUser = db.select().from(users).where(eq(users.id, params.id)).get()
+  const updatedUser = db.select().from(users).where(eq(users.id, id)).get()
 
   return NextResponse.json(updatedUser)
 }
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   await initDb()
+  const { id } = await params
   
   const session = await auth()
   if (!session?.user?.email) {
@@ -58,7 +60,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  const existingUser = db.select().from(users).where(eq(users.id, params.id)).get()
+  const existingUser = db.select().from(users).where(eq(users.id, id)).get()
   
   if (!existingUser) {
     return NextResponse.json({ error: "User not found" }, { status: 404 })
@@ -69,7 +71,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 })
   }
 
-  db.delete(users).where(eq(users.id, params.id)).run()
+  db.delete(users).where(eq(users.id, id)).run()
 
   return NextResponse.json({ success: true })
 }
