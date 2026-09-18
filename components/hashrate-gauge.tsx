@@ -19,7 +19,6 @@ interface HashrateGaugeProps {
 
 const chartConfig: ChartConfig = {
   current: { label: "Current", color: "#10b981" },
-  max: { label: "Max", color: "#e5e7eb" },
 }
 
 function formatHashrate(hps: number | null | undefined): string {
@@ -33,7 +32,7 @@ export function HashrateGauge({ current, max }: HashrateGaugeProps) {
   const cur = current ?? 0
   const peak = max && max > cur ? max : cur * 1.2
 
-  const chartData = [{ name: "hashrate", current: cur, max: peak - cur }]
+  const chartData = [{ name: "hashrate", current: cur, remaining: peak - cur }]
   const percent = peak > 0 ? Math.round((cur / peak) * 100) : 0
 
   return (
@@ -55,16 +54,16 @@ export function HashrateGauge({ current, max }: HashrateGaugeProps) {
               outerRadius="85%"
             >
               <RadialBar
-                dataKey="max"
+                dataKey="current"
                 stackId="a"
-                fill="var(--color-max)"
+                fill="var(--color-current)"
                 cornerRadius={3}
                 className="stroke-transparent"
               />
               <RadialBar
-                dataKey="current"
+                dataKey="remaining"
                 stackId="a"
-                fill="var(--color-current)"
+                fill="transparent"
                 cornerRadius={3}
                 className="stroke-transparent"
               />
