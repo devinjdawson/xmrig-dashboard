@@ -1,4 +1,5 @@
 import { db, initDb, minerSnapshots as snapshotsTable } from "@/lib/db"
+import { requireAuth } from "@/lib/api-auth"
 import { eq, desc } from "drizzle-orm"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -8,6 +9,9 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const unauthorized = await requireAuth()
+  if (unauthorized) return unauthorized
+
   try {
     const { id } = await params
     const searchParams = req.nextUrl.searchParams

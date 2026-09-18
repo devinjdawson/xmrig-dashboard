@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { readFile } from "fs/promises"
 import path from "path"
+import { requireAuth } from "@/lib/api-auth"
 
 const API_DIR = process.env.P2POOL_API_DIR || ""
 
@@ -8,6 +9,9 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
+  const unauthorized = await requireAuth()
+  if (unauthorized) return unauthorized
+
   if (!API_DIR) {
     return NextResponse.json(
       { error: "P2POOL_API_DIR not configured" },

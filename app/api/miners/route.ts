@@ -1,5 +1,6 @@
 import { db, initDb, miners as minersTable, minerSnapshots as snapshotsTable } from "@/lib/db"
 import { parseTags } from "@/lib/serialize-miner"
+import { requireAuth, requireAdmin } from "@/lib/api-auth"
 import { eq, desc } from "drizzle-orm"
 import { NextRequest, NextResponse } from "next/server"
 import type { Miner } from "@/lib/xmrig/types"
@@ -7,6 +8,9 @@ import type { Miner } from "@/lib/xmrig/types"
 await initDb()
 
 export async function GET() {
+  const unauthorized = await requireAuth()
+  if (unauthorized) return unauthorized
+
   const rows = await db.select().from(minersTable).orderBy(minersTable.createdAt)
 
   const miners: Miner[] = await Promise.all(
@@ -59,6 +63,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const forbidden = await requireAdmin()
+  if (forbidden) return forbidden
+
   const body = await req.json().catch(() => null)
   if (!body || !body.host || !body.port) {
     return NextResponse.json({ error: "host and port required" }, { status: 400 })

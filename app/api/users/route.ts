@@ -67,7 +67,6 @@ export async function POST(req: NextRequest) {
     email,
     name: name || email.split("@")[0],
     role: role || "user",
-    emailVerified: false,
   }).run()
 
   const newUser = db.select().from(users).where(eq(users.id, userId)).get()

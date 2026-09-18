@@ -1,5 +1,6 @@
 import { db, miners as minersTable, minerSnapshots as snapshotsTable } from "@/lib/db"
 import { getSummary, getConfig } from "@/lib/xmrig/api"
+import { requireAdmin } from "@/lib/api-auth"
 import { eq } from "drizzle-orm"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -7,6 +8,9 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const forbidden = await requireAdmin()
+  if (forbidden) return forbidden
+
   const { id } = await params
   const minerRow = await db.select().from(minersTable).where(eq(minersTable.id, id)).get()
   if (!minerRow) {

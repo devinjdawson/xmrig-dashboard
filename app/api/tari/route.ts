@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { requireAuth } from "@/lib/api-auth"
 
 async function tariFetch(
   baseUrl: string,
@@ -15,6 +16,9 @@ async function tariFetch(
 }
 
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireAuth()
+  if (unauthorized) return unauthorized
+
   const url = req.nextUrl.searchParams.get("url")
   if (!url) {
     return NextResponse.json({ error: "url parameter required" }, { status: 400 })

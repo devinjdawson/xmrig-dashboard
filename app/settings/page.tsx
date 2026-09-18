@@ -7,11 +7,20 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, ShieldCheck, ShieldOff } from "lucide-react"
+import { Shield, ShieldCheck, ShieldOff, MonitorSmartphone, Trash2 } from "lucide-react"
+
+interface SessionRow {
+  id: string
+  createdAt: string
+  expires: string
+  deviceHint: string | null
+  current: boolean
+}
 
 export default function SettingsPage() {
   const [totpEnabled, setTotpEnabled] = useState(false)
   const [totpConfigured, setTotpConfigured] = useState(false)
+  const [sessions, setSessions] = useState<SessionRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -24,6 +33,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     loadTotpStatus()
+    loadSessions()
   }, [])
 
   async function loadTotpStatus() {
@@ -108,6 +118,47 @@ export default function SettingsPage() {
       loadTotpStatus()
     } catch (err) {
       setError("Failed to disable TOTP")
+    }
+  }
+
+  async function loadSessions() {
+    try {
+      const res = await fetch("/api/sessions")
+      if (!res.ok) return
+      setSessions(await res.json())
+    } catch {
+      // Non-fatal: sessions are only relevant when auth is enabled
+    }
+  }
+
+  async function handleRevokeSession(id: string, current: boolean) {
+    const message = current
+      ? "Sign out of this device? You will be redirected to login."
+      : "Revoke this session? That device will be signed out."
+    if (!confirm(message)) return
+
+    try {
+      const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data.error || "Failed to revoke session")
+        return
+      }
+      if (current) {
+        window.location.href = "/"
+        return
+      }
+      loadSessions()
+    } catch {
+      setError("Failed to revoke session")
+    }
+  }
+
+  function formatDate(value: string) {
+    try {
+      return new Date(value).toLocaleString()
+    } catch {
+      return value
     }
   }
 
@@ -239,6 +290,49 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {sessions.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <MonitorSmartphone className="h-5 w-5" />
+              <CardTitle>Active Sessions</CardTitle>
+            </div>
+            <CardDescription>
+              Devices currently signed in to your account. Revoke any session you do not recognize.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {sessions.map((session) => (
+                <div key={session.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">
+                        {session.current ? "This device" : formatDate(session.createdAt)}
+                      </span>
+                      {session.current && <Badge variant="secondary">Current</Badge>}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {session.deviceHint || "No device details recorded"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Signed in {formatDate(session.createdAt)}
+                    </div>
+                  </div>
+                  <Button
+                    variant={session.current ? "outline" : "destructive"}
+                    size="icon"
+                    onClick={() => handleRevokeSession(session.id, session.current)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

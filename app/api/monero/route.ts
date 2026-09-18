@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { requireAuth } from "@/lib/api-auth"
 
 interface MoneroInfo {
   height: number
@@ -79,6 +80,9 @@ async function rpcRaw(
 }
 
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireAuth()
+  if (unauthorized) return unauthorized
+
   const url = req.nextUrl.searchParams.get("url")
   const user = req.nextUrl.searchParams.get("user") || undefined
   const pass = req.nextUrl.searchParams.get("pass") || undefined

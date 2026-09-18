@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { readFile } from "fs/promises"
 import path from "path"
+import { requireAuth } from "@/lib/api-auth"
 
 export interface P2PoolStats {
   pool_statistics: {
@@ -139,6 +140,9 @@ async function readApiFile(apiDir: string, relative: string): Promise<any> {
 }
 
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireAuth()
+  if (unauthorized) return unauthorized
+
   const url = req.nextUrl.searchParams.get("url")
   const testOnly = req.nextUrl.searchParams.get("test") === "true"
 

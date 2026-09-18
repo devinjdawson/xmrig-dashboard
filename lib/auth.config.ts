@@ -17,7 +17,8 @@ if (!process.env.AUTH_URL) {
   if (alias) process.env.AUTH_URL = alias
 }
 
-const AUTH_ENABLED = process.env.AUTH_ENABLED === "true"
+export const AUTH_ENABLED = process.env.AUTH_ENABLED === "true"
+export const SESSION_MAX_AGE_SECONDS = 24 * 60 * 60
 const PUBLIC_PATHS = ["/login", "/api/auth"]
 
 export function isAllowed(email: string | null | undefined): boolean {
@@ -29,7 +30,7 @@ export function isAllowed(email: string | null | undefined): boolean {
 // auth.ts (Node runtime) so it never gets bundled into the Edge middleware.
 export const authConfig = {
   secret: process.env.AUTH_SECRET,
-  session: { strategy: "jwt", maxAge: 24 * 60 * 60 },
+  session: { strategy: "jwt", maxAge: SESSION_MAX_AGE_SECONDS },
   cookies: {
     sessionToken: {
       options: {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { requireAuth } from "@/lib/api-auth"
 
 interface PriceData {
   usd: number
@@ -153,6 +154,9 @@ function computeProfitability(hashrate: number, network: NetworkData, price: Pri
 }
 
 export async function GET(req: NextRequest) {
+  const unauthorized = await requireAuth()
+  if (unauthorized) return unauthorized
+
   const moneroUrl = req.nextUrl.searchParams.get("moneroUrl") ?? ""
   const user = req.nextUrl.searchParams.get("user") ?? ""
   const pass = req.nextUrl.searchParams.get("pass") ?? ""
