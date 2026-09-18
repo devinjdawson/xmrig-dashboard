@@ -7,11 +7,20 @@ import { Input } from "@/components/ui/input"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field"
 import { GalleryVerticalEndIcon } from "lucide-react"
 
+interface ProviderDescriptor {
+  id: string
+  name: string
+  type: string
+  signinUrl?: string
+  callbackUrl?: string
+}
+
 interface Providers {
-  github: boolean
-  gitlab: boolean
-  google: boolean
-  microsoft: boolean
+  otp?: ProviderDescriptor | null
+  github?: ProviderDescriptor | null
+  gitlab?: ProviderDescriptor | null
+  google?: ProviderDescriptor | null
+  microsoft?: ProviderDescriptor | null
 }
 
 export function LoginForm() {
@@ -27,7 +36,7 @@ export function LoginForm() {
     fetch("/api/auth/providers")
       .then((r) => r.json())
       .then(setProviders)
-      .catch(() => setProviders({ github: false, gitlab: false, google: false, microsoft: false }))
+      .catch(() => setProviders({ otp: null, github: null, gitlab: null, google: null, microsoft: null }))
   }, [])
 
   async function handleSendCode(e: React.FormEvent) {
@@ -135,7 +144,7 @@ export function LoginForm() {
     }
   }
 
-  const hasOAuth = providers && Object.values(providers).some(Boolean)
+  const hasOAuth = Boolean(providers && (providers.github || providers.gitlab || providers.google || providers.microsoft))
 
   return (
     <div className="flex flex-col gap-6">
