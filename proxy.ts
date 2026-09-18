@@ -6,7 +6,7 @@ const { auth } = NextAuth(authConfig)
 
 const PUBLIC_PATHS = ["/login", "/api/auth"]
 
-export default auth((req) => {
+export const proxy = auth((req) => {
   const { pathname } = req.nextUrl
 
   // Expose the pathname to server components so the root layout can enforce

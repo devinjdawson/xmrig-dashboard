@@ -10,6 +10,22 @@ const ALLOWED_DOMAINS = (process.env.AUTH_ALLOWED_DOMAINS || "")
   .map((d) => d.trim().toLowerCase())
   .filter(Boolean)
 
+const ADMIN_EMAILS = (process.env.AUTH_ADMIN_EMAILS || "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean)
+
+// Any email listed here is granted the admin role on their next sign-in.
+// This is the bootstrap mechanism for creating the first admin without SQL.
+export function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false
+  return ADMIN_EMAILS.includes(email.toLowerCase())
+}
+
+export function getAdminEmails(): string[] {
+  return ADMIN_EMAILS
+}
+
 export function isEmailAllowed(email: string | null | undefined): boolean {
   if (!email) return false
   

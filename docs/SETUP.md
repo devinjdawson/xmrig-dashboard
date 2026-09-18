@@ -50,6 +50,8 @@ AUTH_ENABLED=false
 ```env
 AUTH_ENABLED=true
 AUTH_ALLOWED_EMAILS=you@example.com
+# Grant yourself the admin role on first sign-in (bootstrap for the first admin)
+AUTH_ADMIN_EMAILS=you@example.com
 ```
 
 Without SMTP configured, OTP codes are logged to the console.

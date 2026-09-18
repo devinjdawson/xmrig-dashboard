@@ -78,6 +78,7 @@ See [`.env.example`](.env.example) for all options. Key variables:
 | `XMRIG_DATA_DIR` | Data directory for DB and secrets | `~/.xmrig-dashboard` |
 | `AUTH_ENABLED` | Require login to access dashboard | `false` |
 | `AUTH_ALLOWED_EMAILS` | Comma-separated allowed emails | (empty = all) |
+| `AUTH_ADMIN_EMAILS` | Emails promoted to admin on sign-in | (empty) |
 | `P2POOL_API_DIR` | Path to P2Pool local API files | — |
 | `XMRIG_CRON_SECRET` | Bearer token for cron endpoints | `change-me` |
 | `SENTRY_DSN` | GlitchTip DSN for error tracking | (disabled) |

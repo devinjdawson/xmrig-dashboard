@@ -4,6 +4,7 @@ import { DrizzleAdapter } from "@auth/drizzle-adapter"
 import { eq, lt } from "drizzle-orm"
 import { randomUUID } from "crypto"
 import { authConfig, isAllowed, SESSION_MAX_AGE_SECONDS } from "./auth.config"
+import { isAdminEmail } from "./email-validation"
 import { db, initDb } from "./db"
 import {
   users as usersTable,
@@ -79,6 +80,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const userRow =
           db.select().from(usersTable).where(eq(usersTable.email, email)).get() ??
           ensureUserByCredentials(email, user.name)
+
+        if (isAdminEmail(email) && userRow.role !== "admin") {
+          userRow.role = "admin"
+          db.update(usersTable)
+            .set({ role: "admin", updatedAt: new Date() })
+            .where(eq(usersTable.id, userRow.id))
+            .run()
+        }
 
         token.sub = userRow.id
 
