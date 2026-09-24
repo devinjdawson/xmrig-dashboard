@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table"
 import { RefreshCw } from "lucide-react"
 import { loadEndpoints } from "@/lib/network-endpoints"
+import { P2PoolConsole } from "@/components/p2pool-console"
 import { formatHashrate, formatXmr, timeAgo, formatUptime, formatNum, formatCount } from "@/lib/format"
 
 interface WorkerRow {
@@ -268,6 +269,8 @@ export default function P2PoolDashboardPage() {
           </CardContent>
         </Card>
       )}
+
+      <P2PoolConsole />
 
       {blocks.length > 0 && (
         <Card>

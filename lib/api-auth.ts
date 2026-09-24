@@ -5,7 +5,7 @@ import { db, initDb } from "@/lib/db"
 import { sessions as sessionsTable, users as usersTable } from "@/lib/db/schema"
 import { eq, and, gt, lt } from "drizzle-orm"
 import { isEmailAllowed } from "@/lib/email-validation"
-import { SESSION_MAX_AGE_SECONDS } from "@/lib/auth.config"
+import { AUTH_ENABLED, SESSION_MAX_AGE_SECONDS } from "@/lib/auth.config"
 
 export interface AuthContext {
   session: Session
@@ -50,6 +50,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
 }
 
 export async function requireAuth(): Promise<NextResponse | null> {
+  if (!AUTH_ENABLED) return null
   const ctx = await getAuthContext()
   if (!ctx) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -58,6 +59,7 @@ export async function requireAuth(): Promise<NextResponse | null> {
 }
 
 export async function requireAdmin(): Promise<NextResponse | null> {
+  if (!AUTH_ENABLED) return null
   const ctx = await getAuthContext()
   if (!ctx) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

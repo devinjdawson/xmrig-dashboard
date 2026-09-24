@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
 import { loadEndpoints } from "@/lib/network-endpoints"
+import { MoneroBans } from "@/components/monero-bans"
 import { formatXmr, timeAgo, formatUptime, formatNum, formatCount } from "@/lib/format"
 import {
   Table,
@@ -30,10 +31,12 @@ export default function MoneroDashboardPage() {
   const [data, setData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [ep, setEp] = useState<{ moneroUrl: string; moneroUser?: string; moneroPass?: string }>({ moneroUrl: "" })
 
   const load = useCallback(async () => {
-    const ep = loadEndpoints()
-    if (!ep.moneroUrl) {
+    const endpoints = loadEndpoints()
+    setEp({ moneroUrl: endpoints.moneroUrl, moneroUser: endpoints.moneroUser, moneroPass: endpoints.moneroPass })
+    if (!endpoints.moneroUrl) {
       setData(null)
       setError(null)
       setLoading(false)
@@ -41,9 +44,9 @@ export default function MoneroDashboardPage() {
     }
     setLoading(true)
     try {
-      const params = new URLSearchParams({ url: ep.moneroUrl })
-      if (ep.moneroUser) params.set("user", ep.moneroUser)
-      if (ep.moneroPass) params.set("pass", ep.moneroPass)
+      const params = new URLSearchParams({ url: endpoints.moneroUrl })
+      if (endpoints.moneroUser) params.set("user", endpoints.moneroUser)
+      if (endpoints.moneroPass) params.set("pass", endpoints.moneroPass)
       const res = await fetch(`/api/monero?${params}`)
       const json = await res.json()
       if (json?.info) {
@@ -229,6 +232,8 @@ export default function MoneroDashboardPage() {
           </Card>
         )}
       </div>
+
+      {info && <MoneroBans url={ep.moneroUrl} user={ep.moneroUser} pass={ep.moneroPass} />}
 
       {lastBlock && (
         <Card>
