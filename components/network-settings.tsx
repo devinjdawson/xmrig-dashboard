@@ -86,6 +86,17 @@ export function NetworkSettings({ onSave, onClose }: NetworkSettingsProps) {
                 Minotari base node HTTP API. Default port: 9000 (mainnet).
               </p>
             </div>
+            <div className="space-y-2">
+              <Label>Wallet HTTP API URL</Label>
+              <Input
+                placeholder="http://127.0.0.1:18143"
+                value={form.tariWalletUrl}
+                onChange={(e) => setForm((f) => ({ ...f, tariWalletUrl: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Tari wallet JSON-RPC HTTP gateway (grpcurl equivalent). Default port: 18143.
+              </p>
+            </div>
           </div>
         </div>
 

@@ -35,6 +35,12 @@ function formatHugeNumber(n: number | string): string {
   return num.toLocaleString()
 }
 
+function formatTari(tariAtomics: number | string | undefined | null): string {
+  const num = typeof tariAtomics === "string" ? Number(tariAtomics) : tariAtomics
+  if (num == null || isNaN(num) || !isFinite(num)) return "—"
+  return (num / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 6 })
+}
+
 function Stat({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
     <div>
@@ -48,9 +54,12 @@ export default function TariDashboardPage() {
   const [data, setData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [wallet, setWallet] = useState<any>(null)
+  const [walletConfigured, setWalletConfigured] = useState(false)
 
   const load = useCallback(async () => {
     const ep = loadEndpoints()
+    setWalletConfigured(Boolean(ep.tariWalletUrl))
     if (!ep.tariUrl) {
       setData(null)
       setError(null)
@@ -74,6 +83,17 @@ export default function TariDashboardPage() {
     } finally {
       setLoading(false)
     }
+    if (ep.tariWalletUrl) {
+      try {
+        const res = await fetch(`/api/tari/wallet?url=${encodeURIComponent(ep.tariWalletUrl)}`)
+        const json = await res.json()
+        setWallet(json?.state ? json : null)
+      } catch {
+        setWallet(null)
+      }
+    } else {
+      setWallet(null)
+    }
   }, [])
 
   useEffect(() => {
@@ -91,6 +111,19 @@ export default function TariDashboardPage() {
   const headers = Array.isArray(data?.headers?.headers) ? data.headers.headers : []
   const version = data?.version || null
   const identity = data?.identity || null
+  const updateInfo = data?.updateInfo || null
+  const updateAvailable = updateInfo
+    ? Boolean(updateInfo.update_available ?? updateInfo.available ?? updateInfo.is_update_available)
+    : false
+  const walletState = wallet?.state || null
+  const walletVersion = wallet?.version || null
+  const walletPeers = walletState?.connected_peers
+  const walletPeerCount =
+    typeof walletPeers === "number" ? walletPeers : Array.isArray(walletPeers) ? walletPeers.length : 0
+  const walletSyncHeight = Number(walletState?.blocks_synced ?? 0)
+  const walletTargetHeight = Number(walletState?.target_block_height ?? walletSyncHeight ?? 0)
+  const walletSynced =
+    walletTargetHeight > 0 && walletSyncHeight >= walletTargetHeight
 
   const synced = tip?.is_synced ?? false
   const peerCount = networkState?.num_peers ?? peers.length ?? 0
@@ -102,6 +135,7 @@ export default function TariDashboardPage() {
           <h1 className="text-2xl font-bold tracking-tight">Tari Node</h1>
           {tip && <Badge variant={synced ? "success" : "warning"}>{synced ? "Synced" : "Syncing"}</Badge>}
           {version && <Badge variant="secondary">v{version.version ?? version}</Badge>}
+          {updateAvailable && <Badge variant="warning">Update available</Badge>}
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
           <RefreshCw className={loading ? "animate-spin" : ""} />
@@ -120,6 +154,47 @@ export default function TariDashboardPage() {
       {error && !tip && (
         <Card>
           <CardContent className="pt-6 text-sm text-destructive break-words">{error}</CardContent>
+        </Card>
+      )}
+
+      {walletConfigured && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Tari Wallet</CardTitle>
+            {wallet ? (
+              <div className="flex items-center gap-2">
+                <Badge variant={walletSynced ? "success" : "warning"}>
+                  {walletSynced ? "Synced" : `${formatNum(walletSyncHeight)}/${formatNum(walletTargetHeight)}`}
+                </Badge>
+                <Badge variant="secondary">
+                  v{walletVersion?.version ?? walletVersion ?? "—"}
+                </Badge>
+                <Badge variant="outline">{formatNum(walletPeerCount)} peers</Badge>
+              </div>
+            ) : (
+              <Badge variant="destructive">Offline</Badge>
+            )}
+          </CardHeader>
+          <CardContent>
+            {wallet ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <div className="text-[11px] text-muted-foreground">Available</div>
+                  <div className="text-2xl font-extrabold tabular-nums">
+                    {formatTari(walletState?.available_balance)} <span className="text-sm font-bold">T</span>
+                  </div>
+                </div>
+                <Stat label="Timelocked" value={`${formatTari(walletState?.timelocked_balance)} T`} />
+                <Stat label="Pending Incoming" value={`${formatTari(walletState?.pending_incoming_balance)} T`} />
+                <Stat label="Pending Outgoing" value={`${formatTari(walletState?.pending_outgoing_balance)} T`} />
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Wallet gateway unreachable at the configured URL. It is the Tari wallet's JSON-RPC HTTP gateway
+                (the grpcurl interface, default port 18143).
+              </p>
+            )}
+          </CardContent>
         </Card>
       )}
 

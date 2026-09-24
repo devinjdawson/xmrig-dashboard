@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   const base = url.replace(/\s+/g, "").replace(/\/$/, "")
 
   try {
-    const [tipInfo, version, syncInfo, networkState, mempoolStats, peers, headers, identity] =
+    const [tipInfo, version, syncInfo, networkState, mempoolStats, peers, headers, identity, updateInfo] =
       await Promise.allSettled([
         tariFetch(base, "/get_tip_info"),
         tariFetch(base, "/get_version"),
@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
           body: JSON.stringify({ num_headers: 10, sorting: "SORTING_DESC" }),
         }),
         tariFetch(base, "/get_identify"),
+        tariFetch(base, "/check_for_updates"),
       ])
 
     const result: any = {
@@ -52,6 +53,7 @@ export async function GET(req: NextRequest) {
       peers: peers.status === "fulfilled" ? peers.value : null,
       headers: headers.status === "fulfilled" ? headers.value : null,
       identity: identity.status === "fulfilled" ? identity.value : null,
+      updateInfo: updateInfo.status === "fulfilled" ? updateInfo.value : null,
       error:
         tipInfo.status === "rejected"
           ? tipInfo.reason?.message || "Failed to reach Tari node"
