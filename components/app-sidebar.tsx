@@ -1,8 +1,18 @@
 "use client"
 
 import * as React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
+import Autoplay from "embla-carousel-autoplay"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from "@/components/ui/carousel"
+import { cn } from "cn"
 import {
   Sidebar,
   SidebarContent,
@@ -172,6 +182,220 @@ export function AppSidebar({
 
   const pathname = usePathname()
 
+  const [statsApi, setStatsApi] = useState<CarouselApi>()
+  const [statsCurrent, setStatsCurrent] = useState(0)
+  const [statsCount, setStatsCount] = useState(0)
+  const statsAutoplay = useRef(
+    Autoplay({ delay: 5000, stopOnMouseEnter: true, stopOnFocusIn: true }),
+  ).current
+
+  useEffect(() => {
+    if (!statsApi) return
+    setStatsCount(statsApi.scrollSnapList().length)
+    setStatsCurrent(statsApi.selectedScrollSnap())
+    const onSelect = () => setStatsCurrent(statsApi.selectedScrollSnap())
+    const onReInit = () => setStatsCount(statsApi.scrollSnapList().length)
+    statsApi.on("select", onSelect)
+    statsApi.on("reInit", onReInit)
+    return () => {
+      statsApi.off("select", onSelect)
+      statsApi.off("reInit", onReInit)
+    }
+  }, [statsApi])
+
+  const statsSlides: { key: string; label: string; body: React.ReactNode }[] = [
+    {
+      key: "mining",
+      label: "Stats",
+      body: (
+        <div className="px-3 py-2 space-y-2.5">
+          <div>
+            <div className="text-[11px] text-muted-foreground">Total Hashrate</div>
+            <div className="text-xl font-extrabold tracking-tight tabular-nums">
+              {formatHashrate(totalHashrate)}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="text-[11px] text-muted-foreground">Shares</div>
+              <div className="tabular-nums">
+                <span className="text-sm font-bold">{totalSharesGood}</span>
+                <span className="text-[10px] text-muted-foreground mx-0.5">/</span>
+                <span className="text-[10px] text-muted-foreground">{totalSharesTotal}</span>
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] text-muted-foreground">Accept Rate</div>
+              <div className="text-sm font-bold tabular-nums">{avgAcceptRate}%</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="text-[11px] text-muted-foreground">Online</div>
+              <div className="text-sm font-bold tabular-nums">
+                {onlineCount}<span className="text-[10px] text-muted-foreground font-normal">/{miners.length}</span>
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] text-muted-foreground">Uptime</div>
+              <div className="text-sm font-bold tabular-nums">{combinedUptime}</div>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+  ]
+
+  if (p2poolData || (p2poolUrl && p2poolError)) {
+    statsSlides.push({
+      key: "p2pool",
+      label: "P2Pool",
+      body: p2poolError && !p2poolData ? (
+        <div className="px-3 py-2 text-[11px] text-destructive break-words">{p2poolError}</div>
+      ) : (
+        (() => {
+          const poolStats = p2poolData?.stats?.pool_statistics || null
+          const stratumStats = p2poolData?.stratum || null
+          const p2pStats = p2poolData?.p2p || null
+          const config = p2poolData?.config || null
+          const effort =
+            typeof stratumStats?.current_effort === "number" && stratumStats.current_effort >= 0
+              ? (stratumStats.current_effort * 100).toFixed(1)
+              : null
+          return (
+            <div className="px-3 py-2 space-y-1.5">
+              <div>
+                <div className="text-[11px] text-muted-foreground">Pool Hashrate</div>
+                <div className="text-sm font-bold tabular-nums">
+                  {formatHashrate(poolStats?.hashRate ?? stratumStats?.hashrate_15m ?? 0)}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <div className="text-[11px] text-muted-foreground">Miners</div>
+                  <div className="text-sm font-bold tabular-nums">{poolStats?.miners ?? 0}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-foreground">Height</div>
+                  <div className="text-sm font-bold tabular-nums">{poolStats?.sidechainHeight?.toLocaleString() ?? "—"}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <div className="text-[11px] text-muted-foreground">Connections</div>
+                  <div className="text-sm font-bold tabular-nums">{stratumStats?.connections ?? p2pStats?.connections ?? 0}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-muted-foreground">Round Hashes</div>
+                  <div className="text-sm font-bold tabular-nums">
+                    {typeof poolStats?.roundHashes === "number" ? formatCount(poolStats.roundHashes) : "—"}
+                  </div>
+                </div>
+              </div>
+              {(stratumStats || effort !== null) && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="text-[11px] text-muted-foreground">Shares Ok/Fail</div>
+                    <div className="text-sm font-bold tabular-nums">{stratumStats?.shares_found ?? 0}/{stratumStats?.shares_failed ?? 0}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-muted-foreground">Effort</div>
+                    <div className="text-sm font-bold tabular-nums">{effort !== null ? `${effort}%` : "—"}</div>
+                  </div>
+                </div>
+              )}
+              <div className="text-[10px] text-muted-foreground space-y-0.5">
+                {poolStats?.lastBlockFoundTime > 0 && (
+                  <div>Last block {timeAgo(poolStats.lastBlockFoundTime)}</div>
+                )}
+                {config && (
+                  <div>
+                    Fee {config.fee ?? 0}%
+                    {typeof config.minPaymentThreshold === "number" &&
+                      ` · payout ≥ ${(config.minPaymentThreshold / 1e12).toLocaleString()} XMR`}
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })()
+      ),
+    })
+  }
+
+  if (moneroUrl && (moneroStats?.info || moneroError)) {
+    statsSlides.push({
+      key: "monero",
+      label: "Monero Node",
+      body: moneroError && !moneroStats?.info ? (
+        <div className="px-3 py-2 text-[11px] text-destructive break-words">{moneroError}</div>
+      ) : (
+        <div className="px-3 py-2 space-y-1.5">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="text-[11px] text-muted-foreground">Height</div>
+              <div className="text-sm font-bold tabular-nums">{moneroStats.info.height?.toLocaleString() ?? "—"}</div>
+            </div>
+            <div>
+              <div className="text-[11px] text-muted-foreground">Peers</div>
+              <div className="text-sm font-bold tabular-nums">{moneroStats.info.outgoing_connections_count ?? 0}/{moneroStats.info.incoming_connections_count ?? 0}</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="text-[11px] text-muted-foreground">Tx Pool</div>
+              <div className="text-sm font-bold tabular-nums">{moneroStats.info.tx_pool_size ?? 0}</div>
+            </div>
+            <div>
+              <div className="text-[11px] text-muted-foreground">Synced</div>
+              <div className="text-sm font-bold">{moneroStats.info.synchronized ?? moneroStats.info.synced ? "Yes" : "No"}</div>
+            </div>
+          </div>
+        </div>
+      ),
+    })
+  }
+
+  if (tariUrl && tariStats?.tipInfo) {
+    statsSlides.push({
+      key: "tari",
+      label: "Tari Node",
+      body: (
+        <div className="px-3 py-2 space-y-1.5">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="text-[11px] text-muted-foreground">Height</div>
+              <div className="text-sm font-bold tabular-nums">{Number(tariStats.tipInfo.metadata?.best_block_height ?? 0).toLocaleString()}</div>
+            </div>
+            <div>
+              <div className="text-[11px] text-muted-foreground">Synced</div>
+              <div className="text-sm font-bold">{tariStats.tipInfo.is_synced ? "Yes" : "No"}</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="text-[11px] text-muted-foreground">Peers</div>
+              <div className="text-sm font-bold tabular-nums">
+                {tariStats.networkState?.num_peers ?? tariStats.peers?.connected_peers?.length ?? 0}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] text-muted-foreground">Mempool</div>
+              <div className="text-sm font-bold tabular-nums">
+                {tariStats.mempoolStats?.unconfirmed_txs ?? tariStats.mempoolStats?.unconfirmed_transactions ?? 0}
+              </div>
+            </div>
+          </div>
+          {tariStats.version && (
+            <div className="text-[10px] text-muted-foreground font-mono">
+              v{tariStats.version.version ?? tariStats.version}
+            </div>
+          )}
+        </div>
+      ),
+    })
+  }
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -208,200 +432,60 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Cumulative Stats */}
+        {/* Stats carousel: Mining / P2Pool / Monero / Tari */}
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>Stats</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <div className="px-3 py-2 space-y-2.5">
-              <div>
-                <div className="text-[11px] text-muted-foreground">Total Hashrate</div>
-                <div className="text-xl font-extrabold tracking-tight tabular-nums">
-                  {formatHashrate(totalHashrate)}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <div className="text-[11px] text-muted-foreground">Shares</div>
-                  <div className="tabular-nums">
-                    <span className="text-sm font-bold">{totalSharesGood}</span>
-                    <span className="text-[10px] text-muted-foreground mx-0.5">/</span>
-                    <span className="text-[10px] text-muted-foreground">{totalSharesTotal}</span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[11px] text-muted-foreground">Accept Rate</div>
-                  <div className="text-sm font-bold tabular-nums">{avgAcceptRate}%</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <div className="text-[11px] text-muted-foreground">Online</div>
-                  <div className="text-sm font-bold tabular-nums">
-                    {onlineCount}<span className="text-[10px] text-muted-foreground font-normal">/{miners.length}</span>
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[11px] text-muted-foreground">Uptime</div>
-                  <div className="text-sm font-bold tabular-nums">{combinedUptime}</div>
-                </div>
-              </div>
-            </div>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* P2Pool Summary */}
-        {(p2poolData || (p2poolUrl && p2poolError)) && (
-          <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-            <SidebarGroupLabel>P2Pool</SidebarGroupLabel>
+          {statsSlides.length === 1 ? (
+            <>
+              <SidebarGroupLabel>{statsSlides[0].label}</SidebarGroupLabel>
+              <SidebarGroupContent>{statsSlides[0].body}</SidebarGroupContent>
+            </>
+          ) : (
             <SidebarGroupContent>
-              {p2poolError && !p2poolData ? (
-                <div className="px-3 py-2 text-[11px] text-destructive break-words">{p2poolError}</div>
-              ) : (
-                (() => {
-                  const poolStats = p2poolData?.stats?.pool_statistics || null
-                  const stratumStats = p2poolData?.stratum || null
-                  const p2pStats = p2poolData?.p2p || null
-                  const config = p2poolData?.config || null
-                  const effort =
-                    typeof stratumStats?.current_effort === "number" && stratumStats.current_effort >= 0
-                      ? (stratumStats.current_effort * 100).toFixed(1)
-                      : null
-                  return (
-                    <div className="px-3 py-2 space-y-1.5">
+              <Carousel
+                setApi={setStatsApi}
+                opts={{ loop: true }}
+                plugins={[statsAutoplay]}
+              >
+                <CarouselContent className="ms-0">
+                  {statsSlides.map((s) => (
+                    <CarouselItem key={s.key} className="ps-0">
                       <div>
-                        <div className="text-[11px] text-muted-foreground">Pool Hashrate</div>
-                        <div className="text-sm font-bold tabular-nums">
-                          {formatHashrate(poolStats?.hashRate ?? stratumStats?.hashrate_15m ?? 0)}
-                        </div>
+                        <SidebarGroupLabel>{s.label}</SidebarGroupLabel>
+                        {s.body}
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <div className="text-[11px] text-muted-foreground">Miners</div>
-                          <div className="text-sm font-bold tabular-nums">{poolStats?.miners ?? 0}</div>
-                        </div>
-                        <div>
-                          <div className="text-[11px] text-muted-foreground">Height</div>
-                          <div className="text-sm font-bold tabular-nums">{poolStats?.sidechainHeight?.toLocaleString() ?? "—"}</div>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <div className="text-[11px] text-muted-foreground">Connections</div>
-                          <div className="text-sm font-bold tabular-nums">{stratumStats?.connections ?? p2pStats?.connections ?? 0}</div>
-                        </div>
-                        <div>
-                          <div className="text-[11px] text-muted-foreground">Round Hashes</div>
-                          <div className="text-sm font-bold tabular-nums">
-                            {typeof poolStats?.roundHashes === "number" ? formatCount(poolStats.roundHashes) : "—"}
-                          </div>
-                        </div>
-                      </div>
-                      {(stratumStats || effort !== null) && (
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <div className="text-[11px] text-muted-foreground">Shares Ok/Fail</div>
-                            <div className="text-sm font-bold tabular-nums">{stratumStats?.shares_found ?? 0}/{stratumStats?.shares_failed ?? 0}</div>
-                          </div>
-                          <div>
-                            <div className="text-[11px] text-muted-foreground">Effort</div>
-                            <div className="text-sm font-bold tabular-nums">{effort !== null ? `${effort}%` : "—"}</div>
-                          </div>
-                        </div>
-                      )}
-                      <div className="text-[10px] text-muted-foreground space-y-0.5">
-                        {poolStats?.lastBlockFoundTime > 0 && (
-                          <div>Last block {timeAgo(poolStats.lastBlockFoundTime)}</div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <div className="mt-1 flex items-center justify-center gap-0.5">
+                  <CarouselPrevious
+                    variant="ghost"
+                    className="inset-auto static size-6 opacity-70 hover:opacity-100"
+                  />
+                  <div className="flex items-center gap-1.5 px-2">
+                    {Array.from({ length: statsCount }).map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        aria-label={`Show ${statsSlides[i]?.label ?? "stats"}`}
+                        onClick={() => statsApi?.scrollTo(i)}
+                        className={cn(
+                          "h-1.5 rounded-full transition-all duration-300",
+                          i === statsCurrent
+                            ? "w-5 bg-muted-foreground"
+                            : "w-1.5 bg-muted-foreground/40 hover:bg-muted-foreground/70"
                         )}
-                        {config && (
-                          <div>
-                            Fee {config.fee ?? 0}%
-                            {typeof config.minPaymentThreshold === "number" &&
-                              ` · payout ≥ ${(config.minPaymentThreshold / 1e12).toLocaleString()} XMR`}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })()
-              )}
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {/* Monero Node Summary */}
-        {moneroUrl && (moneroStats?.info || moneroError) && (
-          <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-            <SidebarGroupLabel>Monero Node</SidebarGroupLabel>
-            <SidebarGroupContent>
-              {moneroError && !moneroStats?.info ? (
-                <div className="px-3 py-2 text-[11px] text-destructive break-words">{moneroError}</div>
-              ) : (
-                <div className="px-3 py-2 space-y-1.5">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <div className="text-[11px] text-muted-foreground">Height</div>
-                      <div className="text-sm font-bold tabular-nums">{moneroStats.info.height?.toLocaleString() ?? "—"}</div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] text-muted-foreground">Peers</div>
-                      <div className="text-sm font-bold tabular-nums">{moneroStats.info.outgoing_connections_count ?? 0}/{moneroStats.info.incoming_connections_count ?? 0}</div>
-                    </div>
+                      />
+                    ))}
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <div className="text-[11px] text-muted-foreground">Tx Pool</div>
-                      <div className="text-sm font-bold tabular-nums">{moneroStats.info.tx_pool_size ?? 0}</div>
-                    </div>
-                    <div>
-                      <div className="text-[11px] text-muted-foreground">Synced</div>
-                      <div className="text-sm font-bold">{moneroStats.info.synchronized ?? moneroStats.info.synced ? "Yes" : "No"}</div>
-                    </div>
-                  </div>
+                  <CarouselNext
+                    variant="ghost"
+                    className="inset-auto static size-6 opacity-70 hover:opacity-100"
+                  />
                 </div>
-              )}
+              </Carousel>
             </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {/* Tari Node Summary */}
-        {tariUrl && tariStats?.tipInfo && (
-          <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-            <SidebarGroupLabel>Tari Node</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <div className="px-3 py-2 space-y-1.5">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <div className="text-[11px] text-muted-foreground">Height</div>
-                    <div className="text-sm font-bold tabular-nums">{Number(tariStats.tipInfo.metadata?.best_block_height ?? 0).toLocaleString()}</div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-muted-foreground">Synced</div>
-                    <div className="text-sm font-bold">{tariStats.tipInfo.is_synced ? "Yes" : "No"}</div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <div className="text-[11px] text-muted-foreground">Peers</div>
-                    <div className="text-sm font-bold tabular-nums">
-                      {tariStats.networkState?.num_peers ?? tariStats.peers?.connected_peers?.length ?? 0}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[11px] text-muted-foreground">Mempool</div>
-                    <div className="text-sm font-bold tabular-nums">
-                      {tariStats.mempoolStats?.unconfirmed_txs ?? tariStats.mempoolStats?.unconfirmed_transactions ?? 0}
-                    </div>
-                  </div>
-                </div>
-                {tariStats.version && (
-                  <div className="text-[10px] text-muted-foreground font-mono">
-                    v{tariStats.version.version ?? tariStats.version}
-                  </div>
-                )}
-              </div>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+          )}
+        </SidebarGroup>
 
         {/* Account */}
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
