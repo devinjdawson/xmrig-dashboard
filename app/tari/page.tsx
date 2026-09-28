@@ -16,6 +16,24 @@ import {
 import { RefreshCw } from "lucide-react"
 import { loadEndpoints } from "@/lib/network-endpoints"
 import { timeAgo, formatUptime, formatNum, formatCount } from "@/lib/format"
+import { Input } from "@/components/ui/input"
+
+const LOOKUP_MODES = ["height", "time", "utxo", "block", "tx"] as const
+type LookupMode = (typeof LOOKUP_MODES)[number]
+const LOOKUP_LABELS: Record<LookupMode, string> = {
+  height: "Block height",
+  time: "Timestamp",
+  utxo: "UTXO hash",
+  block: "Block hash",
+  tx: "Tx excess sig",
+}
+const LOOKUP_PLACEHOLDERS: Record<LookupMode, string> = {
+  height: "e.g. 2000000",
+  time: "Unix seconds, e.g. 1700000000",
+  utxo: "64-hex output hash",
+  block: "64-hex header hash",
+  tx: "Public nonce (64-hex)",
+}
 
 function formatHugeNumber(n: number | string): string {
   const num = typeof n === "string" ? Number(n) : n
@@ -56,10 +74,46 @@ export default function TariDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [wallet, setWallet] = useState<any>(null)
   const [walletConfigured, setWalletConfigured] = useState(false)
+  const [lookupMode, setLookupMode] = useState<LookupMode>("height")
+  const [lookupValue, setLookupValue] = useState("")
+  const [lookupSig, setLookupSig] = useState("")
+  const [lookupResult, setLookupResult] = useState<any>(null)
+  const [lookupError, setLookupError] = useState<string | null>(null)
+  const [lookupBusy, setLookupBusy] = useState(false)
+  const [tariConfigured, setTariConfigured] = useState(false)
+
+  const runLookup = useCallback(async () => {
+    const ep = loadEndpoints()
+    if (!ep.tariUrl || !lookupValue.trim()) return
+    setLookupBusy(true)
+    setLookupError(null)
+    setLookupResult(null)
+    try {
+      const params = new URLSearchParams({ url: ep.tariUrl })
+      const v = lookupValue.trim()
+      if (lookupMode === "height") params.set("height", v)
+      else if (lookupMode === "time") params.set("time", v)
+      else if (lookupMode === "utxo") params.set("utxo", v)
+      else if (lookupMode === "block") params.set("block", v)
+      else {
+        params.set("tx_nonce", v)
+        params.set("tx_sig", lookupSig.trim())
+      }
+      const res = await fetch(`/api/tari/query?${params}`)
+      const json = await res.json()
+      if (!res.ok || json?.error) setLookupError(json?.error || `HTTP ${res.status}`)
+      else setLookupResult(json)
+    } catch (e: any) {
+      setLookupError(e?.message || "Lookup failed")
+    } finally {
+      setLookupBusy(false)
+    }
+  }, [lookupMode, lookupValue, lookupSig])
 
   const load = useCallback(async () => {
     const ep = loadEndpoints()
     setWalletConfigured(Boolean(ep.tariWalletUrl))
+    setTariConfigured(Boolean(ep.tariUrl))
     if (!ep.tariUrl) {
       setData(null)
       setError(null)
@@ -107,6 +161,7 @@ export default function TariDashboardPage() {
   const syncInfo = data?.syncInfo || null
   const networkState = data?.networkState || null
   const mempool = data?.mempoolStats || null
+  const feeBuckets = Array.isArray(data?.feeStats?.stats) ? data.feeStats.stats : []
   const peers = Array.isArray(data?.peers?.connected_peers) ? data.peers.connected_peers : []
   const headers = Array.isArray(data?.headers?.headers) ? data.headers.headers : []
   const version = data?.version || null
@@ -282,6 +337,40 @@ export default function TariDashboardPage() {
           </Card>
         )}
 
+        {feeBuckets.length > 0 && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-sm font-medium">Mempool Fee Stats</CardTitle>
+              <Badge variant="secondary">per gram</Badge>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Bucket</TableHead>
+                    <TableHead className="text-right">Min</TableHead>
+                    <TableHead className="text-right">Avg</TableHead>
+                    <TableHead className="text-right">Max</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {feeBuckets.slice(0, 10).map((b: any, i: number) => (
+                    <TableRow key={b.order ?? i}>
+                      <TableCell className="tabular-nums">#{(b.order ?? i) + 1}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatNum(Number(b.min_fee_per_gram ?? 0))}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatNum(Number(b.avg_fee_per_gram ?? 0))}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatNum(Number(b.max_fee_per_gram ?? 0))}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Atomic units per gram (1 T = 1,000,000 atomic). Higher buckets are mined faster.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {!networkState && !mempool && tip && (
           <Card>
             <CardHeader>
@@ -362,6 +451,87 @@ export default function TariDashboardPage() {
                 ))}
               </TableBody>
             </Table>
+          </CardContent>
+        </Card>
+      )}
+      {tariConfigured && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Chain Lookup</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex gap-1.5 flex-wrap">
+              {LOOKUP_MODES.map((m) => (
+                <Button
+                  key={m}
+                  size="sm"
+                  variant={lookupMode === m ? "default" : "outline"}
+                  onClick={() => {
+                    setLookupMode(m)
+                    setLookupResult(null)
+                    setLookupError(null)
+                  }}
+                >
+                  {LOOKUP_LABELS[m]}
+                </Button>
+              ))}
+            </div>
+            <form
+              className="flex gap-2 flex-col md:flex-row"
+              onSubmit={(e) => {
+                e.preventDefault()
+                runLookup()
+              }}
+            >
+              <Input
+                value={lookupValue}
+                onChange={(e) => setLookupValue(e.target.value)}
+                placeholder={LOOKUP_PLACEHOLDERS[lookupMode]}
+                className="font-mono text-xs"
+              />
+              {lookupMode === "tx" && (
+                <Input
+                  value={lookupSig}
+                  onChange={(e) => setLookupSig(e.target.value)}
+                  placeholder="Signature (64-hex)"
+                  className="font-mono text-xs"
+                />
+              )}
+              <Button type="submit" size="sm" disabled={lookupBusy || !lookupValue.trim()}>
+                {lookupBusy ? "Querying..." : "Query"}
+              </Button>
+            </form>
+
+            {lookupError && <div className="text-sm text-destructive break-words">{lookupError}</div>}
+
+            {lookupResult && (
+              <div className="space-y-3">
+                {typeof lookupResult.data === "number" ? (
+                  <Stat label="Height at time" value={formatNum(lookupResult.data)} />
+                ) : lookupResult.data && typeof lookupResult.data === "object" ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {(lookupResult.data.height ?? lookupResult.data.mined_at_height) != null && (
+                      <Stat label="Height" value={formatNum(Number(lookupResult.data.height ?? lookupResult.data.mined_at_height))} />
+                    )}
+                    {lookupResult.data.hash != null && <Stat label="Hash" value={String(lookupResult.data.hash).slice(0, 24)} mono />}
+                    {lookupResult.data.timestamp != null && <Stat label="Age" value={timeAgo(Number(lookupResult.data.timestamp))} />}
+                    {lookupResult.data.difficulty != null && (
+                      <Stat label="Difficulty" value={formatCount(Number(lookupResult.data.difficulty))} />
+                    )}
+                    {lookupResult.data.confirmations != null && (
+                      <Stat label="Confirmations" value={formatNum(Number(lookupResult.data.confirmations))} />
+                    )}
+                    {lookupResult.data.prev_hash != null && <Stat label="Prev Hash" value={String(lookupResult.data.prev_hash).slice(0, 24)} mono />}
+                  </div>
+                ) : null}
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground">Raw JSON</summary>
+                  <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-muted p-3 font-mono text-[11px] whitespace-pre-wrap break-all">
+                    {JSON.stringify(lookupResult.data, null, 2)}
+                  </pre>
+                </details>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

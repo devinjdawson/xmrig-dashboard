@@ -146,13 +146,21 @@ P2POOL_API_DIR=/path/to/p2pool/api
 
 ### Tari Node
 
-Start the Minotari base node with HTTP API enabled:
-
-```bash
-minotari_node --grpc-address=0.0.0.0:18142
-```
+The Minotari base node exposes an HTTP REST API (mainnet port 9000, stagenet 9001, nextnet 9002).
+Interactive docs are served by the node itself at `http://<node>:9000/swagger-ui` and a machine-readable
+spec at `/openapi.json`.
 
 In the dashboard, set **Tari HTTP API URL** to `http://localhost:9000`.
+
+For wallet balance/sync, enable the Tari console wallet's HTTP gateway (grpcurl equivalent) and set
+**Wallet HTTP API URL** in Network Settings (default port 18143).
+
+To merge-mine Monero + Tari with P2Pool, run the node with gRPC + mining enabled and point P2Pool at it:
+
+```bash
+./minotari_node --grpc-enabled --mining-enabled
+./p2pool --wallet YOUR_MONERO_WALLET --merge-mine tari://127.0.0.1:18102 YOUR_TARI_WALLET_ADDRESS
+```
 
 ## Production Deployment
 

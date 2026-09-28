@@ -27,13 +27,14 @@ export async function GET(req: NextRequest) {
   const base = url.replace(/\s+/g, "").replace(/\/$/, "")
 
   try {
-    const [tipInfo, version, syncInfo, networkState, mempoolStats, peers, headers, identity, updateInfo] =
+    const [tipInfo, version, syncInfo, networkState, mempoolStats, feeStats, peers, headers, identity, updateInfo] =
       await Promise.allSettled([
         tariFetch(base, "/get_tip_info"),
         tariFetch(base, "/get_version"),
         tariFetch(base, "/get_sync_info"),
         tariFetch(base, "/get_network_state"),
         tariFetch(base, "/get_mempool_stats"),
+        tariFetch(base, "/get_mempool_fee_per_gram_stats?count=10"),
         tariFetch(base, "/list_connected_peers"),
         tariFetch(base, "/list_headers", {
           method: "POST",
@@ -50,6 +51,7 @@ export async function GET(req: NextRequest) {
       syncInfo: syncInfo.status === "fulfilled" ? syncInfo.value : null,
       networkState: networkState.status === "fulfilled" ? networkState.value : null,
       mempoolStats: mempoolStats.status === "fulfilled" ? mempoolStats.value : null,
+      feeStats: feeStats.status === "fulfilled" ? feeStats.value : null,
       peers: peers.status === "fulfilled" ? peers.value : null,
       headers: headers.status === "fulfilled" ? headers.value : null,
       identity: identity.status === "fulfilled" ? identity.value : null,

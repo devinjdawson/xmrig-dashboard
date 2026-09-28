@@ -113,6 +113,27 @@ export async function GET(req: NextRequest) {
       error: info.status === "rejected" ? info.reason?.message : null,
     }
 
+    const infoValue = info.status === "fulfilled" ? (info.value as any) : null
+    const height = Number(infoValue?.height ?? 0)
+    const [recentBlocks, peerList] = await Promise.allSettled([
+      height > 0
+        ? rpc(
+            cleanedUrl,
+            "get_block_header_range",
+            { major_range_start: Math.max(0, height - 9), major_range_end: height },
+            auth,
+          )
+        : Promise.reject(new Error("no height")),
+      rpc(cleanedUrl, "get_peer_list", {}, auth),
+    ])
+
+    const blocks =
+      recentBlocks.status === "fulfilled" && Array.isArray(recentBlocks.value?.headers)
+        ? recentBlocks.value.headers.slice(-20).reverse()
+        : []
+    result.recentBlocks = blocks
+    result.peerList = peerList.status === "fulfilled" ? peerList.value : null
+
     return NextResponse.json(result)
   } catch (e: any) {
     return NextResponse.json({ info: null, error: e.message }, { status: 503 })

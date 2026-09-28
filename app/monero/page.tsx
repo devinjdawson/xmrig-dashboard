@@ -77,6 +77,10 @@ export default function MoneroDashboardPage() {
   const lastBlock = data?.lastBlock?.block_header || null
   const hardFork = data?.hardFork || null
   const conns = Array.isArray(data?.connections?.connections) ? data.connections.connections : []
+  const peerList = data?.peerList || null
+  const whitePeers = Array.isArray(peerList?.white_list) ? peerList.white_list : []
+  const greyPeers = Array.isArray(peerList?.grey_list) ? peerList.grey_list : []
+  const recentBlocks = Array.isArray(data?.recentBlocks) ? data.recentBlocks : []
 
   const synced = info ? Boolean(info.synchronized ?? info.synced) : false
   const netLabel = info?.mainnet ? "mainnet" : info?.testnet ? "testnet" : info?.stagenet ? "stagenet" : "—"
@@ -167,8 +171,30 @@ export default function MoneroDashboardPage() {
               <div className="grid grid-cols-2 gap-3">
                 <Stat label="Outgoing" value={formatNum(info.outgoing_connections_count ?? 0)} />
                 <Stat label="Incoming" value={formatNum(info.incoming_connections_count ?? 0)} />
-                <Stat label="White Peerlist" value={formatNum(info.white_peerlist_size ?? 0)} />
-                <Stat label="Grey Peerlist" value={formatNum(info.grey_peerlist_size ?? 0)} />
+                <Stat label="White Peerlist" value={formatNum(info.white_peerlist_size ?? whitePeers.length)} />
+                <Stat label="Grey Peerlist" value={formatNum(info.grey_peerlist_size ?? greyPeers.length)} />
+                {whitePeers.length > 0 && (
+                  <div className="col-span-2 border-t pt-2">
+                    <div className="text-[11px] text-muted-foreground mb-1.5">Known peers (last seen)</div>
+                    <div className="max-h-32 overflow-y-auto space-y-1">
+                      {[...whitePeers]
+                        .sort((a: any, b: any) => (b.last_seen ?? 0) - (a.last_seen ?? 0))
+                        .slice(0, 10)
+                        .map((p: any, i: number) => {
+                          const raw =
+                            p.ip ?? p.host ?? (p.adr ? `${p.adr?.data ?? ""}${p.adr?.port ? `:${p.adr.port}` : ""}` : "—")
+                          const addr = String(raw).replace(/^\+/, "")
+                          return (
+                            <div key={p.id ?? i} className="flex items-center gap-2 font-mono text-xs">
+                              <span className="truncate">{addr}</span>
+                              {p.port ? <span className="text-muted-foreground">:{p.port}</span> : null}
+                              <span className="ml-auto text-muted-foreground">{p.last_seen ? timeAgo(p.last_seen) : "—"}</span>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -256,6 +282,46 @@ export default function MoneroDashboardPage() {
             <div className="mt-3 text-xs text-muted-foreground">
               Hash: <span className="font-mono break-all">{lastBlock.hash ?? "—"}</span>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {recentBlocks.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-sm font-medium">Recent Blocks</CardTitle>
+            <Badge variant="secondary">{recentBlocks.length}</Badge>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Height</TableHead>
+                  <TableHead>Age</TableHead>
+                  <TableHead className="text-right">Difficulty</TableHead>
+                  <TableHead className="text-right">Tx</TableHead>
+                  <TableHead className="text-right">Reward</TableHead>
+                  <TableHead>Hash</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentBlocks.map((b: any, i: number) => {
+                  const bh = b.block_header ?? b
+                  return (
+                    <TableRow key={bh.hash ?? bh.block_hash ?? i}>
+                      <TableCell className="tabular-nums">{formatNum(bh.height ?? 0)}</TableCell>
+                      <TableCell className="text-xs">{bh.timestamp ? timeAgo(bh.timestamp) : "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatCount(Number(bh.difficulty ?? 0))}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatNum(bh.num_txes ?? 0)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{bh.reward != null ? formatXmr(bh.reward) : "—"}</TableCell>
+                      <TableCell className="font-mono text-xs truncate max-w-[16ch]">
+                        {bh.hash ?? bh.block_hash ?? bh.pow_hash ?? "—"}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}
