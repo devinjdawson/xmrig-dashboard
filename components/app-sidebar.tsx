@@ -35,8 +35,6 @@ import {
   ServerIcon,
   CoinsIcon,
   ZapIcon,
-  UsersIcon,
-  SettingsIcon,
 } from "lucide-react"
 import type { Miner } from "@/lib/xmrig/types"
 
@@ -45,11 +43,6 @@ const WORKSPACES = [
   { title: "P2Pool", href: "/p2pool", icon: ServerIcon },
   { title: "Monero", href: "/monero", icon: CoinsIcon },
   { title: "Tari", href: "/tari", icon: ZapIcon },
-]
-
-const ACCOUNT = [
-  { title: "Settings", href: "/settings", icon: SettingsIcon },
-  { title: "Admin", href: "/admin", icon: UsersIcon },
 ]
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
@@ -485,30 +478,6 @@ export function AppSidebar({
               </Carousel>
             </SidebarGroupContent>
           )}
-        </SidebarGroup>
-
-        {/* Account */}
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>Account</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {ACCOUNT.map(({ title, href, icon: Icon }) => {
-                const isActive = pathname === href
-                return (
-                  <SidebarMenuItem key={href}>
-                    <SidebarMenuButton
-                      tooltip={title}
-                      isActive={isActive}
-                      render={<a href={href} />}
-                    >
-                      <Icon />
-                      <span>{title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
         </SidebarGroup>
 
         {/* Miners List (collapsible) */}
