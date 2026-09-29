@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/api-auth"
 
 const HEX64 = /^[0-9a-fA-F]{64}$/
 const DIGITS = /^\d{1,15}$/
+const HASH_LIST = /^[0-9a-fA-F]{64}(,[0-9a-fA-F]{64})*$/
 
 async function tariRequest(baseUrl: string, path: string): Promise<{ data?: any; error?: string; status?: number }> {
   let res: Response
@@ -85,8 +86,86 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ mode: "transaction", data: r.data })
   }
 
+  const mined = sp.get("mined")
+  if (mined != null) {
+    if (!HASH_LIST.test(mined) || mined.split(",").length > 50) {
+      return NextResponse.json(
+        { error: "mined must be 1-50 comma-separated 64-hex hashes" },
+        { status: 400 },
+      )
+    }
+    const version = sp.get("mined_version") ?? "1"
+    if (version !== "1" && version !== "2") {
+      return NextResponse.json({ error: "mined_version must be 1 or 2" }, { status: 400 })
+    }
+    const r = await tariRequest(base, `/get_utxos_mined_info?hashes=${mined}&version=${version}`)
+    if (r.error) return NextResponse.json({ error: r.error }, { status: r.status ?? 502 })
+    return NextResponse.json({ mode: "mined_utxos", data: r.data })
+  }
+
+  const spent = sp.get("spent")
+  const spentHeader = sp.get("spent_header")
+  if (spent != null || spentHeader != null) {
+    if (!spent || !spentHeader) {
+      return NextResponse.json({ error: "Both spent and spent_header are required" }, { status: 400 })
+    }
+    if (!HASH_LIST.test(spent) || spent.split(",").length > 50) {
+      return NextResponse.json(
+        { error: "spent must be 1-50 comma-separated 64-hex hashes" },
+        { status: 400 },
+      )
+    }
+    if (!HEX64.test(spentHeader)) {
+      return NextResponse.json({ error: "spent_header must be a 64-hex hash" }, { status: 400 })
+    }
+    const version = sp.get("spent_version") ?? "0"
+    if (version !== "0" && version !== "1") {
+      return NextResponse.json({ error: "spent_version must be 0 or 1" }, { status: 400 })
+    }
+    const r = await tariRequest(
+      base,
+      `/get_utxos_deleted_info?hashes=${spent}&must_include_header=${spentHeader}&version=${version}`,
+    )
+    if (r.error) return NextResponse.json({ error: r.error }, { status: r.status ?? 502 })
+    return NextResponse.json({ mode: "spent_utxos", data: r.data })
+  }
+
+  const commitment = sp.get("commitment")
+  if (commitment != null) {
+    if (!HEX64.test(commitment)) {
+      return NextResponse.json({ error: "Invalid commitment (need 64 hex chars)" }, { status: 400 })
+    }
+    const r = await tariRequest(base, `/generate_burn_output_proof?commitment=${commitment}`)
+    if (r.error) return NextResponse.json({ error: r.error }, { status: r.status ?? 502 })
+    return NextResponse.json({ mode: "burn_proof", data: r.data })
+  }
+
+  const syncStart = sp.get("sync_start")
+  if (syncStart != null) {
+    if (!HEX64.test(syncStart)) {
+      return NextResponse.json({ error: "sync_start must be a 64-hex header hash" }, { status: 400 })
+    }
+    const limit = sp.get("sync_limit") ?? "25"
+    const page = sp.get("sync_page") ?? "0"
+    if (!/^\d{1,5}$/.test(limit) || Number(limit) < 1 || Number(limit) > 500) {
+      return NextResponse.json({ error: "sync_limit must be 1-500" }, { status: 400 })
+    }
+    if (!/^\d{1,10}$/.test(page)) {
+      return NextResponse.json({ error: "sync_page must be a non-negative integer" }, { status: 400 })
+    }
+    const r = await tariRequest(
+      base,
+      `/sync_utxos_by_block?start_header_hash=${syncStart}&limit=${limit}&page=${page}`,
+    )
+    if (r.error) return NextResponse.json({ error: r.error }, { status: r.status ?? 502 })
+    return NextResponse.json({ mode: "sync_utxos", data: r.data })
+  }
+
   return NextResponse.json(
-    { error: "Provide one of: height, time, utxo, block, or tx_nonce+tx_sig" },
+    {
+      error:
+        "Provide one of: height, time, utxo, block, tx_nonce+tx_sig, mined, spent+spent_header, commitment, or sync_start",
+    },
     { status: 400 },
   )
 }

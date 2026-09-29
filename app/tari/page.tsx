@@ -18,7 +18,7 @@ import { loadEndpoints } from "@/lib/network-endpoints"
 import { timeAgo, formatUptime, formatNum, formatCount } from "@/lib/format"
 import { Input } from "@/components/ui/input"
 
-const LOOKUP_MODES = ["height", "time", "utxo", "block", "tx"] as const
+const LOOKUP_MODES = ["height", "time", "utxo", "block", "tx", "mined", "spent", "burn", "sync"] as const
 type LookupMode = (typeof LOOKUP_MODES)[number]
 const LOOKUP_LABELS: Record<LookupMode, string> = {
   height: "Block height",
@@ -26,6 +26,10 @@ const LOOKUP_LABELS: Record<LookupMode, string> = {
   utxo: "UTXO hash",
   block: "Block hash",
   tx: "Tx excess sig",
+  mined: "Mined UTXOs",
+  spent: "Spent UTXOs",
+  burn: "Burn proof",
+  sync: "UTXO sync",
 }
 const LOOKUP_PLACEHOLDERS: Record<LookupMode, string> = {
   height: "e.g. 2000000",
@@ -33,6 +37,15 @@ const LOOKUP_PLACEHOLDERS: Record<LookupMode, string> = {
   utxo: "64-hex output hash",
   block: "64-hex header hash",
   tx: "Public nonce (64-hex)",
+  mined: "Comma-separated 64-hex hashes",
+  spent: "Comma-separated 64-hex hashes",
+  burn: "Burn commitment (64-hex)",
+  sync: "Start header hash (64-hex)",
+}
+const LOOKUP_FIELD2: Partial<Record<LookupMode, { label: string; placeholder: string }>> = {
+  tx: { label: "Signature (64-hex)", placeholder: "Signature (64-hex)" },
+  spent: { label: "Must-include header", placeholder: "Must-include header hash (64-hex)" },
+  sync: { label: "Limit per page", placeholder: "Limit (1-500, default 25)" },
 }
 
 function formatHugeNumber(n: number | string): string {
@@ -80,7 +93,7 @@ export default function TariDashboardPage() {
   const [lookupResult, setLookupResult] = useState<any>(null)
   const [lookupError, setLookupError] = useState<string | null>(null)
   const [lookupBusy, setLookupBusy] = useState(false)
-  const [tariConfigured, setTariConfigured] = useState(false)
+  const [tariUrlCfg, setTariUrlCfg] = useState("")
 
   const runLookup = useCallback(async () => {
     const ep = loadEndpoints()
@@ -95,7 +108,15 @@ export default function TariDashboardPage() {
       else if (lookupMode === "time") params.set("time", v)
       else if (lookupMode === "utxo") params.set("utxo", v)
       else if (lookupMode === "block") params.set("block", v)
-      else {
+      else if (lookupMode === "mined") params.set("mined", v)
+      else if (lookupMode === "burn") params.set("commitment", v)
+      else if (lookupMode === "spent") {
+        params.set("spent", v)
+        params.set("spent_header", lookupSig.trim())
+      } else if (lookupMode === "sync") {
+        params.set("sync_start", v)
+        if (lookupSig.trim()) params.set("sync_limit", lookupSig.trim())
+      } else {
         params.set("tx_nonce", v)
         params.set("tx_sig", lookupSig.trim())
       }
@@ -113,7 +134,7 @@ export default function TariDashboardPage() {
   const load = useCallback(async () => {
     const ep = loadEndpoints()
     setWalletConfigured(Boolean(ep.tariWalletUrl))
-    setTariConfigured(Boolean(ep.tariUrl))
+    setTariUrlCfg(ep.tariUrl)
     if (!ep.tariUrl) {
       setData(null)
       setError(null)
@@ -191,6 +212,11 @@ export default function TariDashboardPage() {
           {tip && <Badge variant={synced ? "success" : "warning"}>{synced ? "Synced" : "Syncing"}</Badge>}
           {version && <Badge variant="secondary">v{version.version ?? version}</Badge>}
           {updateAvailable && <Badge variant="warning">Update available</Badge>}
+          {tariUrlCfg && (
+            <a href={`${tariUrlCfg}/swagger-ui`} target="_blank" rel="noopener noreferrer">
+              <Badge variant="outline" className="cursor-pointer">API docs</Badge>
+            </a>
+          )}
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
           <RefreshCw className={loading ? "animate-spin" : ""} />
@@ -454,7 +480,7 @@ export default function TariDashboardPage() {
           </CardContent>
         </Card>
       )}
-      {tariConfigured && (
+      {tariUrlCfg && (
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-medium">Chain Lookup</CardTitle>
@@ -489,11 +515,11 @@ export default function TariDashboardPage() {
                 placeholder={LOOKUP_PLACEHOLDERS[lookupMode]}
                 className="font-mono text-xs"
               />
-              {lookupMode === "tx" && (
+              {LOOKUP_FIELD2[lookupMode] && (
                 <Input
                   value={lookupSig}
                   onChange={(e) => setLookupSig(e.target.value)}
-                  placeholder="Signature (64-hex)"
+                  placeholder={LOOKUP_FIELD2[lookupMode]!.placeholder}
                   className="font-mono text-xs"
                 />
               )}
@@ -509,19 +535,52 @@ export default function TariDashboardPage() {
                 {typeof lookupResult.data === "number" ? (
                   <Stat label="Height at time" value={formatNum(lookupResult.data)} />
                 ) : lookupResult.data && typeof lookupResult.data === "object" ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {(lookupResult.data.height ?? lookupResult.data.mined_at_height) != null && (
-                      <Stat label="Height" value={formatNum(Number(lookupResult.data.height ?? lookupResult.data.mined_at_height))} />
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {(lookupResult.data.height ?? lookupResult.data.mined_at_height) != null && (
+                        <Stat label="Height" value={formatNum(Number(lookupResult.data.height ?? lookupResult.data.mined_at_height))} />
+                      )}
+                      {lookupResult.data.hash != null && <Stat label="Hash" value={String(lookupResult.data.hash).slice(0, 24)} mono />}
+                      {lookupResult.data.timestamp != null && <Stat label="Age" value={timeAgo(Number(lookupResult.data.timestamp))} />}
+                      {lookupResult.data.difficulty != null && (
+                        <Stat label="Difficulty" value={formatCount(Number(lookupResult.data.difficulty))} />
+                      )}
+                      {lookupResult.data.confirmations != null && (
+                        <Stat label="Confirmations" value={formatNum(Number(lookupResult.data.confirmations))} />
+                      )}
+                      {lookupResult.data.prev_hash != null && <Stat label="Prev Hash" value={String(lookupResult.data.prev_hash).slice(0, 24)} mono />}
+                    </div>
+                    {Array.isArray(lookupResult.data.utxo_infos) && (
+                      <div className="space-y-1">
+                        {(lookupResult.data.utxo_infos as any[]).slice(0, 20).map((u, i) => (
+                          <div key={u.output_hash ?? i} className="flex items-center gap-2 font-mono text-xs">
+                            <span className="truncate">{String(u.output_hash ?? "—").slice(0, 20)}...</span>
+                            <span className="ml-auto tabular-nums text-muted-foreground">
+                              {u.mined_height != null
+                                ? `mined #${formatNum(u.mined_height)}`
+                                : u.deleted_height != null
+                                  ? `spent #${formatNum(u.deleted_height)}`
+                                  : "—"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                    {lookupResult.data.hash != null && <Stat label="Hash" value={String(lookupResult.data.hash).slice(0, 24)} mono />}
-                    {lookupResult.data.timestamp != null && <Stat label="Age" value={timeAgo(Number(lookupResult.data.timestamp))} />}
-                    {lookupResult.data.difficulty != null && (
-                      <Stat label="Difficulty" value={formatCount(Number(lookupResult.data.difficulty))} />
+                    {Array.isArray(lookupResult.data.blocks) && (
+                      <div className="space-y-1">
+                        {(lookupResult.data.blocks as any[]).slice(0, 20).map((b, i) => (
+                          <div key={b.header_hash ?? i} className="flex items-center gap-2 font-mono text-xs">
+                            <span className="truncate">#{formatNum(b.height ?? 0)}</span>
+                            <span className="text-muted-foreground">
+                              {(b.outputs?.length ?? 0)} out / {(b.inputs?.length ?? 0)} in
+                            </span>
+                            <span className="ml-auto truncate text-muted-foreground">
+                              {String(b.header_hash ?? "—").slice(0, 16)}...
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     )}
-                    {lookupResult.data.confirmations != null && (
-                      <Stat label="Confirmations" value={formatNum(Number(lookupResult.data.confirmations))} />
-                    )}
-                    {lookupResult.data.prev_hash != null && <Stat label="Prev Hash" value={String(lookupResult.data.prev_hash).slice(0, 24)} mono />}
                   </div>
                 ) : null}
                 <details className="text-xs">
