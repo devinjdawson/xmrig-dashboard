@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Copy, Plus, Save, X } from "lucide-react"
+import { MaskedText } from "@/lib/privacy"
 import type { Miner } from "@/lib/xmrig/types"
 
 interface DuplicateMinerModalProps {
@@ -81,7 +82,7 @@ export function DuplicateMinerModal({ source, onSave, onClose }: DuplicateMinerM
         <CardContent className="space-y-4">
           <div className="rounded-lg border border-muted bg-muted/30 p-3 text-xs text-muted-foreground">
             Copying from <span className="font-mono text-foreground">{source.name}</span> at{" "}
-            <span className="font-mono text-foreground">{source.host}:{source.port}</span>
+            <span className="font-mono text-foreground"><MaskedText value={source.host} kind="ip" />:{source.port}</span>
           </div>
 
           <div className="space-y-2">

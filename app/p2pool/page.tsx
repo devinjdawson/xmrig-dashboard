@@ -17,6 +17,7 @@ import { RefreshCw } from "lucide-react"
 import { loadEndpoints } from "@/lib/network-endpoints"
 import { P2PoolConsole } from "@/components/p2pool-console"
 import { formatHashrate, formatXmr, timeAgo, formatUptime, formatNum, formatCount } from "@/lib/format"
+import { MaskedText } from "@/lib/privacy"
 
 interface WorkerRow {
   addr: string
@@ -170,7 +171,7 @@ export default function P2PoolDashboardPage() {
                 <Stat label="Block Reward Share" value={`${(stratum.block_reward_share_percent ?? 0).toFixed(2)}%`} />
               </div>
               <div className="text-xs text-muted-foreground">
-                Wallet: <span className="font-mono break-all">{stratum.wallet ?? "—"}</span>
+                Wallet: <MaskedText value={stratum.wallet} kind="address" className="font-mono break-all" />
               </div>
             </CardContent>
           </Card>
@@ -206,7 +207,7 @@ export default function P2PoolDashboardPage() {
                 <Stat label="Tip Age" value={timeAgo(network.timestamp ?? 0)} />
               </div>
               <div className="mt-3 text-xs text-muted-foreground">
-                Tip: <span className="font-mono break-all">{network.hash ?? "—"}</span>
+                Tip: <MaskedText value={network.hash} kind="hash" className="font-mono break-all" />
               </div>
             </CardContent>
           </Card>
@@ -258,7 +259,7 @@ export default function P2PoolDashboardPage() {
                 {workers.map((w, i) => (
                   <TableRow key={`${w.addr}-${i}`}>
                     <TableCell className="font-mono text-xs">{w.user}</TableCell>
-                    <TableCell className="font-mono text-xs">{w.addr}</TableCell>
+                    <TableCell className="font-mono text-xs"><MaskedText value={w.addr} kind="ip" /></TableCell>
                     <TableCell className="tabular-nums">{formatUptime(w.uptime)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatNum(w.diff)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatHashrate(w.autodiff)}/s</TableCell>
@@ -282,7 +283,7 @@ export default function P2PoolDashboardPage() {
             <div className="space-y-1">
               {blocks.slice(0, 20).map((b: any, i: number) => (
                 <div key={i} className="font-mono text-xs break-all text-muted-foreground">
-                  {typeof b === "string" ? b : JSON.stringify(b)}
+                  <MaskedText value={typeof b === "string" ? b : JSON.stringify(b)} kind="text" />
                 </div>
               ))}
             </div>

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, RefreshCw } from "lucide-react"
+import { MaskedText } from "@/lib/privacy"
 
 interface P2PoolCardProps {
   url: string
@@ -332,7 +333,7 @@ export function P2PoolCard({ url, enabled }: P2PoolCardProps) {
             <div className="text-xs space-y-1 max-h-24 overflow-y-auto">
               {data.blocks.slice(0, 5).map((b: any, i: number) => (
                 <div key={i} className="flex justify-between font-mono">
-                  <span className="truncate">#{b.height} · {b.hash?.slice(0, 12)}...</span>
+                  <span className="truncate">#{b.height} · <MaskedText value={b.hash} kind="hash" /></span>
                   <span className="text-muted-foreground">{timeAgo(b.timestamp)}</span>
                 </div>
               ))}

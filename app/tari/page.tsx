@@ -16,6 +16,7 @@ import {
 import { RefreshCw } from "lucide-react"
 import { loadEndpoints } from "@/lib/network-endpoints"
 import { timeAgo, formatUptime, formatNum, formatCount } from "@/lib/format"
+import { MaskedText } from "@/lib/privacy"
 import { Input } from "@/components/ui/input"
 
 const LOOKUP_MODES = ["height", "time", "utxo", "block", "tx", "mined", "spent", "burn", "sync"] as const
@@ -321,9 +322,9 @@ export default function TariDashboardPage() {
               </div>
             </div>
             <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-              <div>Tip Hash: <span className="font-mono break-all">{meta.best_block_hash ?? tip.tip_hash ?? "—"}</span></div>
+              <div>Tip Hash: <MaskedText value={meta.best_block_hash ?? tip.tip_hash} kind="hash" className="font-mono break-all" /></div>
               {identity && (
-                <div>Node ID: <span className="font-mono break-all">{identity.public_key ?? identity.node_id ?? "—"}</span></div>
+                <div>Node ID: <MaskedText value={identity.public_key ?? identity.node_id} kind="hash" className="font-mono break-all" /></div>
               )}
             </div>
           </CardContent>
@@ -428,7 +429,10 @@ export default function TariDashboardPage() {
                 {peers.slice(0, 20).map((p: any, i: number) => (
                   <TableRow key={i}>
                     <TableCell className="font-mono text-xs">
-                      {Array.isArray(p.addresses) ? p.addresses[0] : p.address ?? p.net_address ?? "—"}
+                      <MaskedText
+                        value={Array.isArray(p.addresses) ? p.addresses[0] : p.address ?? p.net_address}
+                        kind="text"
+                      />
                     </TableCell>
                     <TableCell className="text-xs">{p.user_agent ?? "—"}</TableCell>
                     <TableCell className="text-xs">
@@ -463,7 +467,7 @@ export default function TariDashboardPage() {
                   <TableRow key={i}>
                     <TableCell className="tabular-nums">{formatNum(h.height ?? h.header?.height ?? 0)}</TableCell>
                     <TableCell className="font-mono text-xs">
-                      {(h.hash ?? h.header?.hash ?? "—").slice(0, 16)}...
+                      <MaskedText value={h.hash ?? h.header?.hash} kind="hash" />
                     </TableCell>
                     <TableCell className="text-xs">
                       {h.timestamp ?? h.header?.timestamp
@@ -540,7 +544,7 @@ export default function TariDashboardPage() {
                       {(lookupResult.data.height ?? lookupResult.data.mined_at_height) != null && (
                         <Stat label="Height" value={formatNum(Number(lookupResult.data.height ?? lookupResult.data.mined_at_height))} />
                       )}
-                      {lookupResult.data.hash != null && <Stat label="Hash" value={String(lookupResult.data.hash).slice(0, 24)} mono />}
+                      {lookupResult.data.hash != null && <Stat label="Hash" value={<MaskedText value={String(lookupResult.data.hash)} kind="hash" />} mono />}
                       {lookupResult.data.timestamp != null && <Stat label="Age" value={timeAgo(Number(lookupResult.data.timestamp))} />}
                       {lookupResult.data.difficulty != null && (
                         <Stat label="Difficulty" value={formatCount(Number(lookupResult.data.difficulty))} />
@@ -548,13 +552,13 @@ export default function TariDashboardPage() {
                       {lookupResult.data.confirmations != null && (
                         <Stat label="Confirmations" value={formatNum(Number(lookupResult.data.confirmations))} />
                       )}
-                      {lookupResult.data.prev_hash != null && <Stat label="Prev Hash" value={String(lookupResult.data.prev_hash).slice(0, 24)} mono />}
+                      {lookupResult.data.prev_hash != null && <Stat label="Prev Hash" value={<MaskedText value={String(lookupResult.data.prev_hash)} kind="hash" />} mono />}
                     </div>
                     {Array.isArray(lookupResult.data.utxo_infos) && (
                       <div className="space-y-1">
                         {(lookupResult.data.utxo_infos as any[]).slice(0, 20).map((u, i) => (
                           <div key={u.output_hash ?? i} className="flex items-center gap-2 font-mono text-xs">
-                            <span className="truncate">{String(u.output_hash ?? "—").slice(0, 20)}...</span>
+                            <MaskedText value={String(u.output_hash ?? "")} kind="hash" className="truncate" />
                             <span className="ml-auto tabular-nums text-muted-foreground">
                               {u.mined_height != null
                                 ? `mined #${formatNum(u.mined_height)}`
@@ -574,9 +578,7 @@ export default function TariDashboardPage() {
                             <span className="text-muted-foreground">
                               {(b.outputs?.length ?? 0)} out / {(b.inputs?.length ?? 0)} in
                             </span>
-                            <span className="ml-auto truncate text-muted-foreground">
-                              {String(b.header_hash ?? "—").slice(0, 16)}...
-                            </span>
+                            <MaskedText value={String(b.header_hash ?? "")} kind="hash" className="ml-auto truncate text-muted-foreground" />
                           </div>
                         ))}
                       </div>
@@ -586,7 +588,7 @@ export default function TariDashboardPage() {
                 <details className="text-xs">
                   <summary className="cursor-pointer text-muted-foreground">Raw JSON</summary>
                   <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-muted p-3 font-mono text-[11px] whitespace-pre-wrap break-all">
-                    {JSON.stringify(lookupResult.data, null, 2)}
+                    <MaskedText value={JSON.stringify(lookupResult.data, null, 2)} kind="text" />
                   </pre>
                 </details>
               </div>

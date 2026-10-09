@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Copy, Pencil, RefreshCcw, Trash2, Wifi, WifiOff } from "lucide-react"
+import { MaskedText } from "@/lib/privacy"
 import type { Miner } from "@/lib/xmrig/types"
 
 interface MinerGridProps {
@@ -57,7 +58,7 @@ export function MinerGrid({
                   <h3 className="text-sm font-semibold truncate">{miner.name}</h3>
                 </div>
                 <p className="text-[11px] text-muted-foreground font-mono truncate">
-                  {miner.host}:{miner.port}
+                  <MaskedText value={miner.host} kind="ip" />:{miner.port}
                 </p>
               </div>
               <input

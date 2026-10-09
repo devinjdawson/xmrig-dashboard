@@ -9,6 +9,7 @@ import { RefreshCw } from "lucide-react"
 import { loadEndpoints } from "@/lib/network-endpoints"
 import { MoneroBans } from "@/components/monero-bans"
 import { formatXmr, timeAgo, formatUptime, formatNum, formatCount } from "@/lib/format"
+import { MaskedText } from "@/lib/privacy"
 import {
   Table,
   TableBody,
@@ -155,7 +156,7 @@ export default function MoneroDashboardPage() {
               <Stat label="Adjusted Time" value={timeAgo(info.adjusted_time ?? 0)} />
             </div>
             <div className="mt-3 text-xs text-muted-foreground">
-              Top Block: <span className="font-mono break-all">{info.top_block_hash ?? "—"}</span>
+              Top Block: <MaskedText value={info.top_block_hash} kind="hash" className="font-mono break-all" />
             </div>
           </CardContent>
         </Card>
@@ -186,7 +187,7 @@ export default function MoneroDashboardPage() {
                           const addr = String(raw).replace(/^\+/, "")
                           return (
                             <div key={p.id ?? i} className="flex items-center gap-2 font-mono text-xs">
-                              <span className="truncate">{addr}</span>
+                              <MaskedText value={addr} kind="ip" className="truncate" />
                               {p.port ? <span className="text-muted-foreground">:{p.port}</span> : null}
                               <span className="ml-auto text-muted-foreground">{p.last_seen ? timeAgo(p.last_seen) : "—"}</span>
                             </div>
@@ -277,10 +278,10 @@ export default function MoneroDashboardPage() {
                 label="Size / Weight"
                 value={`${formatNum(lastBlock.block_size ?? 0)} / ${formatNum(lastBlock.block_weight ?? 0)}`}
               />
-              <Stat label="PoW Hash" value={lastBlock.pow_hash ?? "—"} mono />
+              <Stat label="PoW Hash" value={<MaskedText value={lastBlock.pow_hash} kind="hash" />} mono />
             </div>
             <div className="mt-3 text-xs text-muted-foreground">
-              Hash: <span className="font-mono break-all">{lastBlock.hash ?? "—"}</span>
+              Hash: <MaskedText value={lastBlock.hash} kind="hash" className="font-mono break-all" />
             </div>
           </CardContent>
         </Card>
@@ -315,7 +316,7 @@ export default function MoneroDashboardPage() {
                       <TableCell className="text-right tabular-nums">{formatNum(bh.num_txes ?? 0)}</TableCell>
                       <TableCell className="text-right tabular-nums">{bh.reward != null ? formatXmr(bh.reward) : "—"}</TableCell>
                       <TableCell className="font-mono text-xs truncate max-w-[16ch]">
-                        {bh.hash ?? bh.block_hash ?? bh.pow_hash ?? "—"}
+                        <MaskedText value={bh.hash ?? bh.block_hash ?? bh.pow_hash} kind="hash" />
                       </TableCell>
                     </TableRow>
                   )
@@ -352,7 +353,7 @@ export default function MoneroDashboardPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="font-mono text-xs">
-                      {c.ip || c.host || c.address || "—"}
+                      <MaskedText value={c.ip || c.host || c.address} kind="ip" />
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{c.port ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatNum(c.height ?? 0)}</TableCell>
@@ -375,7 +376,7 @@ export default function MoneroDashboardPage() {
             <div className="space-y-1">
               {altBlocks.slice(0, 10).map((h: string) => (
                 <div key={h} className="font-mono text-xs break-all text-muted-foreground">
-                  {h}
+                  <MaskedText value={h} kind="hash" />
                 </div>
               ))}
             </div>

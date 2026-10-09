@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { PrivacyProvider } from "@/lib/privacy"
 import { cn } from "@/lib/utils";
 import { AUTH_ENABLED } from "@/lib/auth.config"
 
@@ -44,7 +45,9 @@ export default async function RootLayout({
     >
       <body>
         <ThemeProvider>
-          <TooltipProvider>{children}</TooltipProvider>
+          <PrivacyProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </PrivacyProvider>
         </ThemeProvider>
       </body>
     </html>

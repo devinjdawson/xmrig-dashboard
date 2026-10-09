@@ -6,11 +6,14 @@ import { useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
 import {
   ChevronsUpDownIcon,
+  EyeIcon,
+  EyeOffIcon,
   LogOutIcon,
   SettingsIcon,
   ShieldIcon,
   WifiIcon,
 } from "lucide-react"
+import { usePrivacy } from "@/lib/privacy"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -49,6 +52,7 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const router = useRouter()
+  const { obfuscate, setObfuscate } = usePrivacy()
   const [user, setUser] = useState<SessionUser | null>(null)
 
   useEffect(() => {
@@ -121,6 +125,11 @@ export function NavUser({
               )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setObfuscate(!obfuscate)}>
+              {obfuscate ? <EyeOffIcon /> : <EyeIcon />}
+              Obfuscate sensitive data
+              <span className="ms-auto text-xs text-muted-foreground">{obfuscate ? "On" : "Off"}</span>
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={onOpenNetworkSettings}>
               <WifiIcon />
               Network Settings

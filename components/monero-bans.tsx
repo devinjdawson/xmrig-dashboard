@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { RefreshCw, ShieldBan, ShieldOff } from "lucide-react"
+import { MaskedText } from "@/lib/privacy"
 
 interface Ban {
   host: string
@@ -122,7 +123,7 @@ export function MoneroBans({
             <TableBody>
               {bans.slice(0, 50).map((b, i) => (
                 <TableRow key={`${b.host}-${i}`}>
-                  <TableCell className="font-mono text-xs">{b.host}</TableCell>
+                  <TableCell className="font-mono text-xs"><MaskedText value={b.host} kind="ip" /></TableCell>
                   <TableCell className="text-right tabular-nums text-xs">{b.seconds ?? "—"}</TableCell>
                   <TableCell className="text-right">
                     <Button

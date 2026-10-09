@@ -11,6 +11,7 @@ import { MinerSummary } from "./miner-summary"
 import { MinerThreads } from "./miner-threads"
 import { HashrateChart } from "./hashrate-chart"
 import { MiningStatsCard } from "./mining-stats-card"
+import { MaskedText } from "@/lib/privacy"
 import type { Miner } from "@/lib/xmrig/types"
 
 interface MinerCardProps {
@@ -79,7 +80,7 @@ export function MinerCard({ miner, onRefresh, onDelete, onEdit, onDuplicate }: M
               <CardTitle className="text-base truncate">{miner.name}</CardTitle>
             </div>
             <p className="text-xs text-muted-foreground font-mono truncate">
-              {miner.host}:{miner.port}{hr != null && hr > 0 ? ` · ${hr >= 1000 ? `${(hr / 1000).toFixed(2)} KH/s` : `${hr.toFixed(1)} H/s`}` : ""}
+              <MaskedText value={miner.host} kind="ip" />:{miner.port}{hr != null && hr > 0 ? ` · ${hr >= 1000 ? `${(hr / 1000).toFixed(2)} KH/s` : `${hr.toFixed(1)} H/s`}` : ""}
             </p>
             {(miner.tags || []).length > 0 && (
               <div className="flex gap-1 flex-wrap">

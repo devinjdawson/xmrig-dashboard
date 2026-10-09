@@ -6,8 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, ShieldCheck, ShieldOff, MonitorSmartphone, Trash2 } from "lucide-react"
+import { usePrivacy } from "@/lib/privacy"
+import { Shield, ShieldCheck, ShieldOff, MonitorSmartphone, Trash2, EyeOff, Eye } from "lucide-react"
 
 interface SessionRow {
   id: string
@@ -18,6 +20,7 @@ interface SessionRow {
 }
 
 export default function SettingsPage() {
+  const { obfuscate, setObfuscate } = usePrivacy()
   const [totpEnabled, setTotpEnabled] = useState(false)
   const [totpConfigured, setTotpConfigured] = useState(false)
   const [sessions, setSessions] = useState<SessionRow[]>([])
@@ -287,6 +290,36 @@ export default function SettingsPage() {
               <li>Enter the 6-digit code from the app to verify</li>
               <li>After enabling, you'll need to enter both email code and TOTP code when logging in</li>
             </ol>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            {obfuscate ? (
+              <EyeOff className="h-5 w-5" />
+            ) : (
+              <Eye className="h-5 w-5 text-muted-foreground" />
+            )}
+            <CardTitle>Privacy</CardTitle>
+          </div>
+          <CardDescription>
+            Obfuscate IP addresses (miners, peers, workers), wallet addresses, and block/UTXO hashes
+            across the dashboard. Masked values can be revealed individually by clicking them.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-medium">Obfuscate sensitive data</div>
+              <div className="text-sm text-muted-foreground">
+                {obfuscate
+                  ? "Sensitive values are masked — click any value to reveal it"
+                  : "All values are shown in clear text"}
+              </div>
+            </div>
+            <Switch checked={obfuscate} onCheckedChange={(v: boolean) => setObfuscate(v)} />
           </div>
         </CardContent>
       </Card>

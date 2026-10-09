@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Copy, Pencil, RefreshCcw, Trash2 } from "lucide-react"
+import { MaskedText } from "@/lib/privacy"
 import type { Miner } from "@/lib/xmrig/types"
 
 interface MinerTableProps {
@@ -81,7 +82,7 @@ export function MinerTable({
                 </td>
                 <td className="p-2 font-medium">{miner.name}</td>
                 <td className="p-2 font-mono text-xs text-muted-foreground">
-                  {miner.host}:{miner.port}
+                  <MaskedText value={miner.host} kind="ip" />:{miner.port}
                 </td>
                 <td className="p-2 text-right font-mono">
                   {isOnline && hr != null && hr > 0 ? (

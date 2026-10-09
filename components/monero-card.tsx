@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { MaskedText } from "@/lib/privacy"
 
 interface MoneroCardProps {
   url: string
@@ -231,7 +232,7 @@ export function MoneroCard({ url, user, pass, enabled }: MoneroCardProps) {
                   <Badge variant={c.incoming ? "outline" : "secondary"} className="text-[10px]">
                     {c.incoming ? "IN" : "OUT"}
                   </Badge>
-                  <span className="truncate">{c.ip || c.address || c.host || "unknown"}</span>
+                  <MaskedText value={c.ip || c.address || c.host} kind="ip" className="truncate" emptyLabel="unknown" />
                   <span className="text-muted-foreground ml-auto">{c.port}{c.rpc_port ? ` (rpc:${c.rpc_port})` : ""}</span>
                 </div>
               ))}
