@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Copy, Pencil, RefreshCcw, Trash2, Wifi, WifiOff } from "lucide-react"
-import { MaskedText } from "@/lib/privacy"
+import { MaskedText, usePrivacy } from "@/lib/privacy"
 import type { Miner } from "@/lib/xmrig/types"
 
 interface MinerGridProps {
@@ -32,6 +32,7 @@ export function MinerGrid({
   onRefresh,
   onDuplicate,
 }: MinerGridProps) {
+  const { obfuscate } = usePrivacy()
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-3">
       {miners.map((miner) => {
@@ -113,8 +114,8 @@ export function MinerGrid({
             )}
 
             {miner.error && (
-              <p className="text-[11px] text-destructive truncate mb-2" title={miner.error}>
-                {miner.error}
+              <p className="text-[11px] text-destructive truncate mb-2" title={obfuscate ? undefined : miner.error}>
+                <MaskedText value={miner.error} kind="text" />
               </p>
             )}
 

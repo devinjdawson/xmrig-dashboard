@@ -109,7 +109,9 @@ export default function P2PoolDashboardPage() {
       {error && !data && (
         <Card>
           <CardContent className="pt-6">
-            <div className="text-sm text-destructive whitespace-pre-wrap break-words">{String(error).slice(0, 1000)}</div>
+              <div className="text-sm text-destructive whitespace-pre-wrap break-words">
+                <MaskedText value={String(error).slice(0, 1000)} kind="text" />
+              </div>
             <p className="text-xs text-muted-foreground mt-3">
               Set P2POOL_API_DIR on the server (P2Pool started with --data-api) or configure the P2Pool API URL in
               Network Settings.
@@ -258,7 +260,7 @@ export default function P2PoolDashboardPage() {
               <TableBody>
                 {workers.map((w, i) => (
                   <TableRow key={`${w.addr}-${i}`}>
-                    <TableCell className="font-mono text-xs">{w.user}</TableCell>
+                    <TableCell className="font-mono text-xs"><MaskedText value={w.user} kind="address" /></TableCell>
                     <TableCell className="font-mono text-xs"><MaskedText value={w.addr} kind="ip" /></TableCell>
                     <TableCell className="tabular-nums">{formatUptime(w.uptime)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatNum(w.diff)}</TableCell>

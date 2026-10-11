@@ -84,7 +84,7 @@ export function MoneroCard({ url, user, pass, enabled }: MoneroCardProps) {
     return (
       <Card>
         <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Badge variant="secondary">Monero Node</Badge></CardTitle></CardHeader>
-        <CardContent className="text-sm text-destructive">{data?.error || "Failed to fetch info"}</CardContent>
+        <CardContent className="text-sm text-destructive"><MaskedText value={data?.error} kind="text" emptyLabel="Failed to fetch info" /></CardContent>
       </Card>
     )
   }

@@ -115,7 +115,7 @@ export default function MoneroDashboardPage() {
 
       {error && !info && (
         <Card>
-          <CardContent className="pt-6 text-sm text-destructive break-words">{error}</CardContent>
+          <CardContent className="pt-6 text-sm text-destructive break-words"><MaskedText value={error} kind="text" /></CardContent>
         </Card>
       )}
 

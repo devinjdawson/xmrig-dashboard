@@ -205,7 +205,7 @@ export function P2PoolCard({ url, enabled }: P2PoolCardProps) {
                         <span className="text-muted-foreground ml-auto">{diag.timing}ms</span>
                       </div>
                       {diag.error && (
-                        <div className="text-xs text-destructive ml-8">{diag.error}</div>
+                        <div className="text-xs text-destructive ml-8"><MaskedText value={diag.error} kind="text" /></div>
                       )}
                       {diag.responseSnippet && (
                         <pre className="text-[10px] bg-background p-2 rounded overflow-x-auto max-h-24 ml-8">{diag.responseSnippet}</pre>

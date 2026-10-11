@@ -109,7 +109,7 @@ export function MoneroBans({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error && <p className="text-xs text-destructive break-words">{error}</p>}
+        {error && <p className="text-xs text-destructive break-words"><MaskedText value={error} kind="text" /></p>}
 
         {bans.length > 0 && (
           <Table>

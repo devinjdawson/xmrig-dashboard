@@ -41,9 +41,15 @@ export function maskText(s: string): string {
     .replace(/([0-9a-fA-F]{6})[0-9a-fA-F]{48,}([0-9a-fA-F]{6})/g, `$1${DOT}$2`)
     .replace(/\b(\d{1,3})\.\d{1,3}\.\d{1,3}\.(\d{1,3})\b/g, `$1.${DOT}.$2`)
     .replace(/([1-9A-HJ-NP-Za-km-z]{4})[1-9A-HJ-NP-Za-km-z]{70,}([1-9A-HJ-NP-Za-km-z]{4})/g, `$1${DOT}$2`)
+    .replace(/("(?:pass|password|access[_-]?token|apikey|api[_-]?key|token)"\s*:\s*")([^"]*)(")/gi, (_m, k, v, e) => `${k}${"•".repeat(Math.min(v.length || 1, 8))}${e}`)
 }
 
-export type MaskKind = "ip" | "address" | "hash" | "text"
+export function maskSecret(s: string): string {
+  if (!s) return s
+  return "•".repeat(Math.min(s.length, 8))
+}
+
+export type MaskKind = "ip" | "address" | "hash" | "text" | "secret"
 
 export function applyMask(value: string, kind: MaskKind): string {
   switch (kind) {
@@ -55,5 +61,7 @@ export function applyMask(value: string, kind: MaskKind): string {
       return maskHash(value)
     case "text":
       return maskText(value)
+    case "secret":
+      return maskSecret(value)
   }
 }

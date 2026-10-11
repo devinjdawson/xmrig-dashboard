@@ -114,12 +114,12 @@ export function MinerCard({ miner, onRefresh, onDelete, onEdit, onDuplicate }: M
         </div>
         {testResult && (
           <p className={`text-xs pt-2 ${testResult.ok ? "text-green-500" : "text-destructive"}`}>
-            {testResult.ok ? "Connection OK" : `Failed: ${testResult.error}`}
+            {testResult.ok ? "Connection OK" : <>Failed: <MaskedText value={testResult.error} kind="text" /></>}
           </p>
         )}
         {miner.error && (
           <>
-            <p className="text-xs text-destructive pt-2">Error: {miner.error}</p>
+            <p className="text-xs text-destructive pt-2">Error: <MaskedText value={miner.error} kind="text" /></p>
             <Separator className="my-2" />
           </>
         )}

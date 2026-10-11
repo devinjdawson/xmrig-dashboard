@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { TerminalSquare, Send } from "lucide-react"
+import { MaskedText } from "@/lib/privacy"
 import {
   P2POOL_CONSOLE_COMMANDS,
   findCommand,
@@ -101,7 +102,7 @@ export function P2PoolConsole() {
       <CardContent className="space-y-4">
         {state.error && (
           <p className="text-xs text-destructive break-words">
-            {state.error}. P2Pool binds its console to 127.0.0.1 on the machine running P2Pool; the dashboard
+            <MaskedText value={state.error} kind="text" />. P2Pool binds its console to 127.0.0.1 on the machine running P2Pool; the dashboard
             must be able to reach that address (host networking or a forwarder).
           </p>
         )}
@@ -139,7 +140,7 @@ export function P2PoolConsole() {
 
         {message && (
           <p className={`text-xs break-words ${message.ok ? "text-muted-foreground" : "text-destructive"}`}>
-            {message.text}
+            <MaskedText value={message.text} kind="text" />
           </p>
         )}
 

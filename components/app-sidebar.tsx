@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useEffect, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
+import { MaskedText } from "@/lib/privacy"
 import Autoplay from "embla-carousel-autoplay"
 import {
   Carousel,
@@ -244,7 +245,7 @@ export function AppSidebar({
       key: "p2pool",
       label: "P2Pool",
       body: p2poolError && !p2poolData ? (
-        <div className="px-3 py-2 text-[11px] text-destructive break-words">{p2poolError}</div>
+        <div className="px-3 py-2 text-[11px] text-destructive break-words"><MaskedText value={p2poolError} kind="text" /></div>
       ) : (
         (() => {
           const poolStats = p2poolData?.stats?.pool_statistics || null
@@ -321,7 +322,7 @@ export function AppSidebar({
       key: "monero",
       label: "Monero Node",
       body: moneroError && !moneroStats?.info ? (
-        <div className="px-3 py-2 text-[11px] text-destructive break-words">{moneroError}</div>
+        <div className="px-3 py-2 text-[11px] text-destructive break-words"><MaskedText value={moneroError} kind="text" /></div>
       ) : (
         <div className="px-3 py-2 space-y-1.5">
           <div className="grid grid-cols-2 gap-2">

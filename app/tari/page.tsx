@@ -235,7 +235,7 @@ export default function TariDashboardPage() {
 
       {error && !tip && (
         <Card>
-          <CardContent className="pt-6 text-sm text-destructive break-words">{error}</CardContent>
+          <CardContent className="pt-6 text-sm text-destructive break-words"><MaskedText value={error} kind="text" /></CardContent>
         </Card>
       )}
 
@@ -532,7 +532,7 @@ export default function TariDashboardPage() {
               </Button>
             </form>
 
-            {lookupError && <div className="text-sm text-destructive break-words">{lookupError}</div>}
+            {lookupError && <div className="text-sm text-destructive break-words"><MaskedText value={lookupError} kind="text" /></div>}
 
             {lookupResult && (
               <div className="space-y-3">

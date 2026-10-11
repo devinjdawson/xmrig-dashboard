@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { MaskedText } from "@/lib/privacy"
 import type { XmrigConfig } from "@/lib/xmrig/types"
 
 interface MinerConfigProps {
@@ -76,8 +77,9 @@ export function MinerConfig({ config, loading }: MinerConfigProps) {
               <TableCell>
                 {config.pools?.map((p, i) => (
                   <div key={i} className="mb-1">
-                    <div className="font-medium">{p.url}</div>
-                    <div className="text-sm text-muted-foreground">{p.pass || "x"}</div>
+                    <div className="font-medium"><MaskedText value={p.url} kind="ip" /></div>
+                    <div className="text-sm text-muted-foreground"><MaskedText value={p.user} kind="address" emptyLabel="—" /></div>
+                    <div className="text-sm text-muted-foreground"><MaskedText value={p.pass || "x"} kind="secret" /></div>
                   </div>
                 ))}
               </TableCell>
@@ -98,7 +100,7 @@ export function MinerConfig({ config, loading }: MinerConfigProps) {
         <h4 className="text-sm font-medium mb-2">Raw Configuration</h4>
         <ScrollArea className="h-64 rounded-md border p-3">
           <pre className="text-xs whitespace-pre-wrap">
-            {JSON.stringify(config, null, 2)}
+            <MaskedText value={JSON.stringify(config, null, 2)} kind="text" />
           </pre>
         </ScrollArea>
       </div>
